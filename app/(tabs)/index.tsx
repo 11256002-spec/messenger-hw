@@ -1,79 +1,133 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { DeviceEventEmitter, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+
+import { AuthPanel } from '@/components/auth-panel';
+import { useAppStore } from '@/context/app-store';
+
+function formatTimeLabel(value?: string) {
+  if (!value) {
+    return '尚無訊息';
+  }
+
+  return new Intl.DateTimeFormat('zh-TW', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
 
 export default function ChatListScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  
-  // 這裡直接寫入預設摘要，確保一打開 App 就能看到
-  const [dynamicMessages, setDynamicMessages] = useState<any>({
-    '林語安': '沒問題，明天圖書館見！',
-    '吳奕辰': '那我先去訂位喔。',
-    '陳米雅': '這張照片拍得超好看！',
-    '王大同': '笑死我了，這梗圖哪來的？',
-    '李若依': '那今天晚上八點見。',
-    '張家瑋': 'Repo 我更新好了，你再看下。',
-    '徐子涵': '作業記得要在期限前交喔。',
-    '周杰倫': '期待我的新作品吧！',
-    '蔡依林': '沒問題，明天圖書館見！',
-    '助教本人': '這次期中作業很有水準，加分！',
-  });
+  const { currentUser, users, isHydrating, refresh, getFriends, getConversationWithFriend } = useAppStore();
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [myAvatar, setMyAvatar] = useState((params.userAvatar as string) || 'https://i.pravatar.cc/150?u=me_self');
+  async function handleRefresh() {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  }
 
-  useEffect(() => {
-    const avatarSub = DeviceEventEmitter.addListener('updateAvatar', (uri) => setMyAvatar(uri));
-    const msgSub = DeviceEventEmitter.addListener('updateLastMsg', ({ name, msg }) => {
-      setDynamicMessages((prev: any) => ({ ...prev, [name]: msg }));
+  if (isHydrating) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>載入帳號與訊息中...</Text>
+      </View>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <View style={styles.authShell}>
+        <View style={styles.heroBlock}>
+          <Text style={styles.heroTitle}>Messenger HW</Text>
+          <Text style={styles.heroSubtitle}>建立帳號後，可以新增好友、互傳訊息，並把對話紀錄留在本機。</Text>
+        </View>
+        <AuthPanel />
+        {users.length > 0 ? (
+          <View style={styles.accountHintCard}>
+            <Text style={styles.accountHintTitle}>目前已建立的帳號</Text>
+            <View style={styles.accountChipWrap}>
+              {users.map((user) => (
+                <View key={user.id} style={styles.accountChip}>
+                  <Text style={styles.accountChipText}>{user.username}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  const items = getFriends()
+    .map((friend) => {
+      const conversation = getConversationWithFriend(friend.id);
+      const lastMessage = conversation?.messages[conversation.messages.length - 1];
+
+      return {
+        id: friend.id,
+        name: friend.username,
+        avatar: friend.avatarUri,
+        preview: lastMessage?.text ?? '還沒有訊息，先聊點什麼吧。',
+        updatedAt: lastMessage?.createdAt,
+      };
+    })
+    .sort((left, right) => {
+      if (!left.updatedAt && !right.updatedAt) {
+        return left.name.localeCompare(right.name, 'zh-Hant');
+      }
+
+      if (!left.updatedAt) {
+        return 1;
+      }
+
+      if (!right.updatedAt) {
+        return -1;
+      }
+
+      return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
     });
-    return () => { avatarSub.remove(); msgSub.remove(); };
-  }, []);
-
-  const USERS = [
-    { id: '1', name: '林語安', time: '14:00', img: 'https://i.pravatar.cc/100?u=1' },
-    { id: '2', name: '吳奕辰', time: '12:30', img: 'https://i.pravatar.cc/100?u=2' },
-    { id: '3', name: '陳米雅', time: '11:00', img: 'https://i.pravatar.cc/100?u=3' },
-    { id: '4', name: '王大同', time: '10:15', img: 'https://i.pravatar.cc/100?u=4' },
-    { id: '5', name: '李若依', time: '09:45', img: 'https://i.pravatar.cc/100?u=5' },
-    { id: '6', name: '張家瑋', time: '08:20', img: 'https://i.pravatar.cc/100?u=6' },
-    { id: '7', name: '徐子涵', time: '昨天', img: 'https://i.pravatar.cc/100?u=7' },
-    { id: '8', name: '周杰倫', time: '昨天', img: 'https://i.pravatar.cc/100?u=8' },
-    { id: '9', name: '蔡依林', time: '星期日', img: 'https://i.pravatar.cc/100?u=9' },
-    { id: '10', name: '助教本人', time: '星期日', img: 'https://i.pravatar.cc/100?u=10' },
-  ];
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Image source={{ uri: myAvatar }} style={styles.myAvatar} />
-        <Text style={styles.headerTitle}>聊天</Text>
+      <View style={styles.headerCard}>
+        <Image source={{ uri: currentUser.avatarUri }} style={styles.myAvatar} />
+        <View style={styles.headerTextBlock}>
+          <Text style={styles.headerTitle}>聊天</Text>
+          <Text style={styles.headerSubtitle}>目前登入：{currentUser.username}</Text>
+        </View>
       </View>
-      <View style={styles.horizontalArea}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 15 }}>
-          {USERS.map(user => (
-            <TouchableOpacity key={user.id} style={styles.storyItem} onPress={() => router.push({ pathname: '/chat', params: { name: user.name } })}>
-              <Image source={{ uri: user.img }} style={styles.storyAvatar} />
-              <Text style={styles.storyName} numberOfLines={1}>{user.name}</Text>
-              <View style={styles.onlineDot} />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+
+      <View style={styles.infoBanner}>
+        <Text style={styles.infoText}>到帳號頁新增好友；好友建立後，雙方登入都能看到同一段對話。</Text>
       </View>
+
       <FlatList
-        data={USERS}
+        data={items}
         keyExtractor={(item) => item.id}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        contentContainerStyle={items.length === 0 ? styles.emptyListContainer : styles.listContainer}
+        ListEmptyComponent={
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>還沒有好友</Text>
+            <Text style={styles.emptyText}>先到「帳號」頁建立第二個帳號並互加好友，聊天列表就會出現。</Text>
+          </View>
+        }
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.chatItem} onPress={() => router.push({ pathname: '/chat', params: { name: item.name } })}>
-            <Image source={{ uri: item.img }} style={styles.listAvatar} />
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Pressable
+            style={styles.chatItem}
+            onPress={() => router.push({ pathname: '/chat', params: { friendId: item.id } })}>
+            <Image source={{ uri: item.avatar }} style={styles.listAvatar} />
+            <View style={styles.chatBody}>
+              <View style={styles.chatHeaderRow}>
                 <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.time}>{item.time}</Text>
+                <Text style={styles.time}>{formatTimeLabel(item.updatedAt)}</Text>
               </View>
-              <Text style={styles.lastMsg} numberOfLines={1}>{dynamicMessages[item.name]}</Text>
+              <Text style={styles.lastMsg} numberOfLines={2}>{item.preview}</Text>
             </View>
-          </TouchableOpacity>
+          </Pressable>
         )}
       />
     </View>
@@ -81,18 +135,35 @@ export default function ChatListScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white' },
-  headerContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 5 },
-  myAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eee', marginRight: 12 },
-  headerTitle: { fontSize: 32, fontWeight: 'bold', color: '#000' },
-  horizontalArea: { paddingBottom: 15, borderBottomWidth: 0.5, borderBottomColor: '#eee' },
-  storyItem: { alignItems: 'center', width: 75, marginRight: 10, position: 'relative', marginTop: 10 },
-  storyAvatar: { width: 65, height: 65, borderRadius: 32.5, marginBottom: 5, borderWidth: 2, borderColor: '#0084FF' },
-  storyName: { fontSize: 12, color: '#333' },
-  onlineDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#4CAF50', position: 'absolute', right: 5, bottom: 20, borderWidth: 2, borderColor: '#fff' },
-  chatItem: { flexDirection: 'row', padding: 15, alignItems: 'center' },
-  listAvatar: { width: 60, height: 60, borderRadius: 30, marginRight: 15 },
-  name: { fontSize: 17, fontWeight: '600' },
-  time: { fontSize: 13, color: '#999' },
-  lastMsg: { fontSize: 15, color: '#666', marginTop: 2 },
+  container: { flex: 1, backgroundColor: '#f8fafc', paddingHorizontal: 18, paddingTop: 10 },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' },
+  loadingText: { fontSize: 16, color: '#475569' },
+  authShell: { flex: 1, backgroundColor: '#eff6ff', paddingHorizontal: 20, paddingVertical: 30, alignItems: 'center' },
+  heroBlock: { width: '100%', maxWidth: 420, marginBottom: 20 },
+  heroTitle: { fontSize: 36, fontWeight: '800', color: '#082f49' },
+  heroSubtitle: { marginTop: 10, fontSize: 16, lineHeight: 24, color: '#334155' },
+  accountHintCard: { width: '100%', maxWidth: 420, marginTop: 18, backgroundColor: '#ffffff', borderRadius: 24, padding: 20 },
+  accountHintTitle: { fontSize: 16, fontWeight: '700', color: '#0f172a', marginBottom: 12 },
+  accountChipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  accountChip: { backgroundColor: '#e0f2fe', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+  accountChipText: { color: '#075985', fontWeight: '600' },
+  headerCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 24, padding: 18 },
+  myAvatar: { width: 54, height: 54, borderRadius: 27, marginRight: 14, backgroundColor: '#dbeafe' },
+  headerTextBlock: { flex: 1 },
+  headerTitle: { fontSize: 32, fontWeight: '800', color: '#0f172a' },
+  headerSubtitle: { marginTop: 2, fontSize: 14, color: '#475569' },
+  infoBanner: { marginTop: 14, marginBottom: 14, backgroundColor: '#e0f2fe', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 14 },
+  infoText: { fontSize: 14, lineHeight: 20, color: '#075985' },
+  listContainer: { paddingBottom: 20 },
+  emptyListContainer: { flexGrow: 1, justifyContent: 'center' },
+  emptyCard: { backgroundColor: '#ffffff', borderRadius: 24, padding: 24, alignItems: 'center' },
+  emptyTitle: { fontSize: 22, fontWeight: '700', color: '#0f172a' },
+  emptyText: { marginTop: 10, fontSize: 15, lineHeight: 22, textAlign: 'center', color: '#64748b' },
+  chatItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 22, padding: 16, marginBottom: 12 },
+  listAvatar: { width: 58, height: 58, borderRadius: 29, marginRight: 14, backgroundColor: '#dbeafe' },
+  chatBody: { flex: 1 },
+  chatHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  name: { flex: 1, fontSize: 17, fontWeight: '700', color: '#0f172a' },
+  time: { fontSize: 12, color: '#64748b' },
+  lastMsg: { marginTop: 6, fontSize: 14, lineHeight: 20, color: '#475569' },
 });

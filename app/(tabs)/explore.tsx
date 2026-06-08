@@ -3,11 +3,22 @@ import React, { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useAppStore } from '@/context/app-store';
-
 export default function ProfileScreen() {
-  const { currentUser, users, getFriends, logout, updateAvatar, addFriendByUsername, isHydrating } = useAppStore();
+  const {
+    currentUser,
+    users,
+    getFriends,
+    logout,
+    updateAvatar,
+    addFriendByUsername,
+    acceptFriendRequest,
+    rejectFriendRequest,
+    getIncomingFriendRequests,
+    isHydrating,
+  } = useAppStore();
   const [friendUsername, setFriendUsername] = useState('');
   const [message, setMessage] = useState('輸入帳號名稱後，會直接建立雙向好友關係。');
+  const incomingRequests = currentUser ? getIncomingFriendRequests() : [];
 
   async function pickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -55,7 +66,11 @@ export default function ProfileScreen() {
   }
 
   const availableUsers = users.filter(
-    (user) => user.id !== currentUser.id && !currentUser.friendIds.includes(user.id)
+    (user) =>
+      user.id !== currentUser.id &&
+      !currentUser.friendIds.includes(user.id) &&
+      !currentUser.incomingFriendRequestIds.includes(user.id) &&
+      !currentUser.outgoingFriendRequestIds.includes(user.id)
   );
 
   return (
@@ -91,6 +106,41 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.sectionCard}>
+        {incomingRequests.length === 0 ? (
+          <Text style={styles.sectionText}>暫時沒有新的邀請。</Text>
+        ) : (
+          incomingRequests.map((requester) => (
+            <View key={requester.id} style={styles.requestRow}>
+              <Text style={styles.requestText}>{requester.username} 想加你為好友</Text>
+              <View style={styles.requestActions}>
+                <Pressable
+                  style={[styles.requestButton, styles.acceptButton]}
+                  onPress={async () => {
+                    try {
+                      await acceptFriendRequest(requester.id);
+                      setMessage(`已接受 ${requester.username} 的好友邀請。`);
+                    } catch (error) {
+                      setMessage(error instanceof Error ? error.message : '同意好友邀請失敗。');
+                    }
+                  }}>
+                  <Text style={styles.requestButtonText}>同意</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.requestButton, styles.rejectButton]}
+                  onPress={async () => {
+                    try {
+                      await rejectFriendRequest(requester.id);
+                      setMessage(`已拒絕 ${requester.username} 的邀請。`);
+                    } catch (error) {
+                      setMessage(error instanceof Error ? error.message : '拒絕好友邀請失敗。');
+                    }
+                  }}>
+                  <Text style={styles.rejectButtonText}>拒絕</Text>
+                </Pressable>
+              </View>
+            </View>
+          ))
+        )}
         <Text style={styles.sectionTitle}>我的好友</Text>
         {getFriends().length === 0 ? (
           <Text style={styles.sectionText}>目前還沒有好友。</Text>
@@ -144,6 +194,14 @@ const styles = StyleSheet.create({
   friendRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
   friendAvatar: { width: 42, height: 42, borderRadius: 21, marginRight: 12, backgroundColor: '#dbeafe' },
   friendName: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
+  requestRow: { marginBottom: 14, padding: 14, backgroundColor: '#f8fafc', borderRadius: 18 },
+  requestText: { fontSize: 15, color: '#0f172a', marginBottom: 10 },
+  requestActions: { flexDirection: 'row', gap: 10 },
+  requestButton: { flex: 1, borderRadius: 14, paddingVertical: 12, alignItems: 'center' },
+  acceptButton: { backgroundColor: '#22c55e' },
+  rejectButton: { backgroundColor: '#ef4444' },
+  requestButtonText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
+  rejectButtonText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
   suggestionChip: { alignSelf: 'flex-start', backgroundColor: '#e0f2fe', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10, marginRight: 8, marginTop: 8 },
   suggestionChipText: { color: '#075985', fontWeight: '600' },
 });

@@ -9,6 +9,8 @@ export type AppUser = {
   password: string;
   avatarUri: string;
   friendIds: string[];
+  incomingFriendRequestIds: string[];
+  outgoingFriendRequestIds: string[];
   createdAt: string;
 };
 
@@ -46,6 +48,9 @@ type AppStoreContextValue = {
   logout: () => Promise<void>;
   updateAvatar: (avatarUri: string) => Promise<void>;
   addFriendByUsername: (username: string) => Promise<void>;
+  acceptFriendRequest: (fromUserId: string) => Promise<void>; // Expose new method
+  rejectFriendRequest: (fromUserId: string) => Promise<void>; // Expose new method
+  getIncomingFriendRequests: () => AppUser[]; // Expose new method
   sendMessage: (friendId: string, text: string) => Promise<void>;
   refresh: () => Promise<void>;
   getUserById: (userId: string) => AppUser | undefined;
@@ -113,7 +118,12 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     const parsed = JSON.parse(rawValue) as AppState;
     const safeState: AppState = {
       currentUserId: parsed.currentUserId ?? null,
-      users: parsed.users ?? [],
+      users: (parsed.users ?? []).map((user) => ({
+        ...user,
+        friendIds: user.friendIds ?? [],
+        incomingFriendRequestIds: user.incomingFriendRequestIds ?? [],
+        outgoingFriendRequestIds: user.outgoingFriendRequestIds ?? [],
+      })),
       conversations: parsed.conversations ?? [],
     };
 
@@ -157,6 +167,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       password,
       avatarUri: createAvatar(username),
       friendIds: [],
+      incomingFriendRequestIds: [],
+      outgoingFriendRequestIds: [],
       createdAt: new Date().toISOString(),
     };
 
@@ -231,13 +243,71 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       throw new Error('你們已經是好友了');
     }
 
+    if (targetUser.incomingFriendRequestIds.includes(currentUser.id)) {
+      throw new Error('你已經送出好友邀請，請等候對方同意');
+    }
+
+    if (currentUser.incomingFriendRequestIds.includes(targetUser.id)) {
+      await acceptFriendRequest(targetUser.id);
+      return;
+    }
+
     const updatedUsers = currentState.users.map((user) => {
       if (user.id === currentUser.id) {
-        return { ...user, friendIds: [...user.friendIds, targetUser.id] };
+        return {
+          ...user,
+          outgoingFriendRequestIds: [...user.outgoingFriendRequestIds, targetUser.id],
+        };
       }
 
       if (user.id === targetUser.id) {
-        return { ...user, friendIds: [...user.friendIds, currentUser.id] };
+        return {
+          ...user,
+          incomingFriendRequestIds: [...user.incomingFriendRequestIds, currentUser.id],
+        };
+      }
+
+      return user;
+    });
+
+    await persist({
+      ...currentState,
+      users: updatedUsers,
+    });
+  }
+
+  async function acceptFriendRequest(fromUserId: string) {
+    const currentUser = getRequiredCurrentUser();
+    const currentState = getCurrentState();
+    const fromUser = currentState.users.find((user) => user.id === fromUserId);
+
+    if (!fromUser) {
+      throw new Error('找不到該邀請者');
+    }
+
+    if (!currentUser.incomingFriendRequestIds.includes(fromUserId)) {
+      throw new Error('沒有這個好友邀請');
+    }
+
+    if (currentUser.friendIds.includes(fromUserId)) {
+      throw new Error('你們已經是好友了');
+    }
+
+    const updatedUsers = currentState.users.map((user) => {
+      if (user.id === currentUser.id) {
+        return {
+          ...user,
+          friendIds: [...user.friendIds, fromUserId],
+          incomingFriendRequestIds: user.incomingFriendRequestIds.filter((id) => id !== fromUserId),
+        };
+      }
+
+      if (user.id === fromUserId) {
+        return {
+          ...user,
+          friendIds: [...user.friendIds, currentUser.id],
+          outgoingFriendRequestIds: user.outgoingFriendRequestIds.filter((id) => id !== currentUser.id),
+        };
       }
 
       return user;
@@ -246,7 +316,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     const existingConversation = findConversation(
       currentState.conversations,
       currentUser.id,
-      targetUser.id
+      fromUserId
     );
 
     const nextConversations = existingConversation
@@ -255,7 +325,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
           ...currentState.conversations,
           {
             id: createId('conversation'),
-            participantIds: [currentUser.id, targetUser.id] as [string, string],
+            participantIds: [currentUser.id, fromUserId] as [string, string],
             messages: [],
           },
         ];
@@ -265,6 +335,52 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       users: updatedUsers,
       conversations: nextConversations,
     });
+  }
+
+  async function rejectFriendRequest(fromUserId: string) {
+    const currentUser = getRequiredCurrentUser();
+    const currentState = getCurrentState();
+    const fromUser = currentState.users.find((user) => user.id === fromUserId);
+
+    if (!fromUser) {
+      throw new Error('找不到該邀請者');
+    }
+
+    if (!currentUser.incomingFriendRequestIds.includes(fromUserId)) {
+      throw new Error('沒有這個好友邀請');
+    }
+
+    const updatedUsers = currentState.users.map((user) => {
+      if (user.id === currentUser.id) {
+        return {
+          ...user,
+          incomingFriendRequestIds: user.incomingFriendRequestIds.filter((id) => id !== fromUserId),
+        };
+      }
+
+      if (user.id === fromUserId) {
+        return {
+          ...user,
+          outgoingFriendRequestIds: user.outgoingFriendRequestIds.filter((id) => id !== currentUser.id),
+        };
+      }
+
+      return user;
+    });
+
+    await persist({
+      ...currentState,
+      users: updatedUsers,
+    });
+  }
+
+  function getIncomingFriendRequests() {
+    const currentUser = getRequiredCurrentUser();
+    const currentState = getCurrentState();
+
+    return currentState.users.filter((user) =>
+      currentUser.incomingFriendRequestIds.includes(user.id)
+    );
   }
 
   async function sendMessage(friendId: string, text: string) {
@@ -348,6 +464,9 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         logout,
         updateAvatar,
         addFriendByUsername,
+        acceptFriendRequest,
+        rejectFriendRequest,
+        getIncomingFriendRequests,
         sendMessage,
         refresh,
         getUserById,

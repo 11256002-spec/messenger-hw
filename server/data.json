@@ -1,0 +1,65 @@
+{
+  "users": [
+    {
+      "id": "76a17fbd-f415-429c-bb31-cd50e3291f21",
+      "username": "devtest",
+      "password": "$2a$08$e9iRTuarmtfS8VclnPnDn.xk6Mq1ipvTZl410Ir/yvU.lJh6h4rzy",
+      "avatarUri": "https://i.pravatar.cc/150?u=devtest",
+      "friendIds": [],
+      "incomingFriendRequestIds": [
+        "f9544b58-2e7f-4c17-893f-360bc07e786f"
+      ],
+      "outgoingFriendRequestIds": [],
+      "createdAt": "2026-06-09T05:58:05.430Z"
+    },
+    {
+      "id": "f9544b58-2e7f-4c17-893f-360bc07e786f",
+      "username": "user",
+      "password": "$2a$08$wf2L6q0tZzpFxkacyaG2FelTwvdZRnYkHKghOf/drzN2HPH2zmIhy",
+      "avatarUri": "https://i.pravatar.cc/150?u=user",
+      "friendIds": [
+        "4074be0b-2f7a-452b-87a9-ecf5355a3e50"
+      ],
+      "incomingFriendRequestIds": [],
+      "outgoingFriendRequestIds": [
+        "76a17fbd-f415-429c-bb31-cd50e3291f21"
+      ],
+      "createdAt": "2026-06-09T05:58:28.667Z"
+    },
+    {
+      "id": "4074be0b-2f7a-452b-87a9-ecf5355a3e50",
+      "username": "ooo",
+      "password": "$2a$08$I4AK0L9b5Tz/eO6TIBY6..fS/HNJJwdvTirONieHeFgAeTqYIU.0a",
+      "avatarUri": "https://i.pravatar.cc/150?u=ooo",
+      "friendIds": [
+        "f9544b58-2e7f-4c17-893f-360bc07e786f"
+      ],
+      "incomingFriendRequestIds": [],
+      "outgoingFriendRequestIds": [],
+      "createdAt": "2026-06-09T05:59:55.636Z"
+    }
+  ],
+  "conversations": [
+    {
+      "id": "3eb91b26-819a-414b-a671-fcb06f07a083",
+      "participantIds": [
+        "f9544b58-2e7f-4c17-893f-360bc07e786f",
+        "4074be0b-2f7a-452b-87a9-ecf5355a3e50"
+      ],
+      "messages": [
+        {
+          "id": "10b2e06f-1cb7-4771-b101-2a0f9aa9c794",
+          "senderId": "f9544b58-2e7f-4c17-893f-360bc07e786f",
+          "text": "c8 ]",
+          "createdAt": "2026-06-09T06:00:23.727Z"
+        },
+        {
+          "id": "31d3cc8f-a9d3-42ad-9972-9632ea871771",
+          "senderId": "4074be0b-2f7a-452b-87a9-ecf5355a3e50",
+          "text": "333",
+          "createdAt": "2026-06-09T06:00:37.933Z"
+        }
+      ]
+    }
+  ]
+}

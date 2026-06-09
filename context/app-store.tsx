@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 const STORAGE_KEY = 'messenger-hw-store-v1';
+const TOKEN_KEY = 'messenger-hw-token';
+const SERVER_URL = 'http://localhost:4000';
 
 export type AppUser = {
   id: string;
@@ -106,8 +108,62 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setState(nextState);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
   }
+  async function apiFetch(path: string, options: any = {}) {
+    const token = await AsyncStorage.getItem(TOKEN_KEY);
+    const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(`${SERVER_URL}${path}`, { ...options, headers });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(body?.error || 'API error');
+    return body;
+  }
+
+  async function loadFromServer() {
+    // fetch current user, users, conversations
+    const me = await apiFetch('/api/me');
+    const users = await apiFetch('/api/users');
+    const conversations = await apiFetch('/api/conversations');
+
+    const next: AppState = {
+      currentUserId: me.id,
+      users: users.map((u: any) => ({ ...u })),
+      conversations: conversations || [],
+    };
+
+    await persist(next);
+  }
 
   async function refresh() {
+    // if a token exists, hydrate from server; otherwise fallback to local storage
+    const token = await AsyncStorage.getItem(TOKEN_KEY);
+    if (token) {
+      try {
+        await loadFromServer();
+        return;
+      } catch (e) {
+        // if server fetch fails, continue to fall back to local state
+        console.warn('Failed to load from server:', e.message);
+      }
+    }
+
+    // Development helper: if running in dev and no token, fetch a dev token and store it
+    // @ts-ignore
+    if (!token && typeof __DEV__ !== 'undefined' && __DEV__) {
+      try {
+        const dev = await fetch(`${SERVER_URL}/api/dev/get-token`);
+        if (dev.ok) {
+          const body = await dev.json();
+          if (body?.token) {
+            await AsyncStorage.setItem(TOKEN_KEY, body.token);
+            await loadFromServer();
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('dev token fetch failed', err?.message || err);
+      }
+    }
+
     const rawValue = await AsyncStorage.getItem(STORAGE_KEY);
     if (!rawValue) {
       stateRef.current = defaultState;
@@ -152,54 +208,37 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       throw new Error('請輸入帳號與密碼');
     }
 
-    const currentState = getCurrentState();
-    const existedUser = currentState.users.find(
-      (item) => normalizeUsername(item.username) === normalizeUsername(username)
-    );
-
-    if (existedUser) {
-      throw new Error('這個帳號名稱已被使用');
-    }
-
-    const newUser: AppUser = {
-      id: createId('user'),
-      username,
-      password,
-      avatarUri: createAvatar(username),
-      friendIds: [],
-      incomingFriendRequestIds: [],
-      outgoingFriendRequestIds: [],
-      createdAt: new Date().toISOString(),
-    };
-
-    await persist({
-      ...currentState,
-      currentUserId: newUser.id,
-      users: [...currentState.users, newUser],
+    // call server register
+    const body = await apiFetch('/api/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
     });
+
+    // store token and load from server
+    if (body.token) await AsyncStorage.setItem(TOKEN_KEY, body.token);
+    await loadFromServer();
   }
 
   async function login(input: RegisterInput) {
     const username = input.username.trim();
     const password = input.password.trim();
-    const currentState = getCurrentState();
-    const user = currentState.users.find(
-      (item) =>
-        normalizeUsername(item.username) === normalizeUsername(username) && item.password === password
-    );
 
-    if (!user) {
-      throw new Error('帳號或密碼錯誤');
+    if (!username || !password) {
+      throw new Error('請輸入帳號與密碼');
     }
 
-    await persist({
-      ...currentState,
-      currentUserId: user.id,
+    const body = await apiFetch('/api/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
     });
+
+    if (body.token) await AsyncStorage.setItem(TOKEN_KEY, body.token);
+    await loadFromServer();
   }
 
   async function logout() {
     const currentState = getCurrentState();
+    await AsyncStorage.removeItem(TOKEN_KEY);
     await persist({
       ...currentState,
       currentUserId: null,
@@ -207,171 +246,38 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function updateAvatar(avatarUri: string) {
-    const currentUser = getRequiredCurrentUser();
-    const currentState = getCurrentState();
-
-    await persist({
-      ...currentState,
-      users: currentState.users.map((user) =>
-        user.id === currentUser.id ? { ...user, avatarUri } : user
-      ),
+    // call server to update avatar, then refresh
+    await apiFetch('/api/me/avatar', {
+      method: 'POST',
+      body: JSON.stringify({ avatarUri }),
     });
+    await loadFromServer();
   }
 
   async function addFriendByUsername(username: string) {
-    const currentUser = getRequiredCurrentUser();
     const targetName = username.trim();
-    const currentState = getCurrentState();
-
-    if (!targetName) {
-      throw new Error('請輸入要加入的好友帳號');
-    }
-
-    const targetUser = currentState.users.find(
-      (item) => normalizeUsername(item.username) === normalizeUsername(targetName)
-    );
-
-    if (!targetUser) {
-      throw new Error('找不到這個帳號');
-    }
-
-    if (targetUser.id === currentUser.id) {
-      throw new Error('不能把自己加入好友');
-    }
-
-    if (currentUser.friendIds.includes(targetUser.id)) {
-      throw new Error('你們已經是好友了');
-    }
-
-    if (targetUser.incomingFriendRequestIds.includes(currentUser.id)) {
-      throw new Error('你已經送出好友邀請，請等候對方同意');
-    }
-
-    if (currentUser.incomingFriendRequestIds.includes(targetUser.id)) {
-      await acceptFriendRequest(targetUser.id);
-      return;
-    }
-
-    const updatedUsers = currentState.users.map((user) => {
-      if (user.id === currentUser.id) {
-        return {
-          ...user,
-          outgoingFriendRequestIds: [...user.outgoingFriendRequestIds, targetUser.id],
-        };
-      }
-
-      if (user.id === targetUser.id) {
-        return {
-          ...user,
-          incomingFriendRequestIds: [...user.incomingFriendRequestIds, currentUser.id],
-        };
-      }
-
-      return user;
+    if (!targetName) throw new Error('請輸入要加入的好友帳號');
+    await apiFetch('/api/friends/request', {
+      method: 'POST',
+      body: JSON.stringify({ username: targetName }),
     });
-
-    await persist({
-      ...currentState,
-      users: updatedUsers,
-    });
+    await loadFromServer();
   }
 
   async function acceptFriendRequest(fromUserId: string) {
-    const currentUser = getRequiredCurrentUser();
-    const currentState = getCurrentState();
-    const fromUser = currentState.users.find((user) => user.id === fromUserId);
-
-    if (!fromUser) {
-      throw new Error('找不到該邀請者');
-    }
-
-    if (!currentUser.incomingFriendRequestIds.includes(fromUserId)) {
-      throw new Error('沒有這個好友邀請');
-    }
-
-    if (currentUser.friendIds.includes(fromUserId)) {
-      throw new Error('你們已經是好友了');
-    }
-
-    const updatedUsers = currentState.users.map((user) => {
-      if (user.id === currentUser.id) {
-        return {
-          ...user,
-          friendIds: [...user.friendIds, fromUserId],
-          incomingFriendRequestIds: user.incomingFriendRequestIds.filter((id) => id !== fromUserId),
-        };
-      }
-
-      if (user.id === fromUserId) {
-        return {
-          ...user,
-          friendIds: [...user.friendIds, currentUser.id],
-          outgoingFriendRequestIds: user.outgoingFriendRequestIds.filter((id) => id !== currentUser.id),
-        };
-      }
-
-      return user;
+    await apiFetch('/api/friends/accept', {
+      method: 'POST',
+      body: JSON.stringify({ fromUserId }),
     });
-
-    const existingConversation = findConversation(
-      currentState.conversations,
-      currentUser.id,
-      fromUserId
-    );
-
-    const nextConversations = existingConversation
-      ? currentState.conversations
-      : [
-          ...currentState.conversations,
-          {
-            id: createId('conversation'),
-            participantIds: [currentUser.id, fromUserId] as [string, string],
-            messages: [],
-          },
-        ];
-
-    await persist({
-      ...currentState,
-      users: updatedUsers,
-      conversations: nextConversations,
-    });
+    await loadFromServer();
   }
 
   async function rejectFriendRequest(fromUserId: string) {
-    const currentUser = getRequiredCurrentUser();
-    const currentState = getCurrentState();
-    const fromUser = currentState.users.find((user) => user.id === fromUserId);
-
-    if (!fromUser) {
-      throw new Error('找不到該邀請者');
-    }
-
-    if (!currentUser.incomingFriendRequestIds.includes(fromUserId)) {
-      throw new Error('沒有這個好友邀請');
-    }
-
-    const updatedUsers = currentState.users.map((user) => {
-      if (user.id === currentUser.id) {
-        return {
-          ...user,
-          incomingFriendRequestIds: user.incomingFriendRequestIds.filter((id) => id !== fromUserId),
-        };
-      }
-
-      if (user.id === fromUserId) {
-        return {
-          ...user,
-          outgoingFriendRequestIds: user.outgoingFriendRequestIds.filter((id) => id !== currentUser.id),
-        };
-      }
-
-      return user;
+    await apiFetch('/api/friends/reject', {
+      method: 'POST',
+      body: JSON.stringify({ fromUserId }),
     });
-
-    await persist({
-      ...currentState,
-      users: updatedUsers,
-    });
+    await loadFromServer();
   }
 
   function getIncomingFriendRequests() {
@@ -384,43 +290,19 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function sendMessage(friendId: string, text: string) {
-    const currentUser = getRequiredCurrentUser();
     const messageText = text.trim();
-    const currentState = getCurrentState();
+    if (!messageText) throw new Error('訊息不能是空白');
 
-    if (!messageText) {
-      throw new Error('訊息不能是空白');
-    }
+    // need a conversation id: find or create by accepting friend; we assume conversations exist after accept
+    const convs: any[] = await apiFetch('/api/conversations');
+    const conv = convs.find(c => c.participantIds.includes(friendId));
+    if (!conv) throw new Error('找不到會話');
 
-    if (!currentUser.friendIds.includes(friendId)) {
-      throw new Error('對方還不是你的好友');
-    }
-
-    const conversation =
-      findConversation(currentState.conversations, currentUser.id, friendId) ?? {
-        id: createId('conversation'),
-        participantIds: [currentUser.id, friendId] as [string, string],
-        messages: [],
-      };
-
-    const nextMessage: AppMessage = {
-      id: createId('message'),
-      senderId: currentUser.id,
-      text: messageText,
-      createdAt: new Date().toISOString(),
-    };
-
-    const conversationsWithoutCurrent = currentState.conversations.filter(
-      (item) => item.id !== conversation.id
-    );
-
-    await persist({
-      ...currentState,
-      conversations: [
-        ...conversationsWithoutCurrent,
-        { ...conversation, messages: [...conversation.messages, nextMessage] },
-      ],
+    await apiFetch('/api/messages', {
+      method: 'POST',
+      body: JSON.stringify({ conversationId: conv.id, text: messageText }),
     });
+    await loadFromServer();
   }
 
   function getUserById(userId: string) {

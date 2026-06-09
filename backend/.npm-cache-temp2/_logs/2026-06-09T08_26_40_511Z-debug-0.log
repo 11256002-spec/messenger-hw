@@ -1,0 +1,252 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Users\user\AppData\Roaming\npm\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.11.0
+2 info using node@v24.14.0
+3 silly config load:file:C:\Users\user\AppData\Roaming\npm\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\user\Desktop\messenger-hw\backend\.npmrc
+5 silly config load:file:C:\Users\user\.npmrc
+6 silly config load:file:C:\Users\user\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm install
+8 verbose argv "install" "--registry" "https://registry.npmjs.org/" "--prefer-online" "--cache" ".\\.npm-cache-temp2"
+9 verbose logfile logs-max:10 dir:C:\Users\user\Desktop\messenger-hw\backend\.npm-cache-temp2\_logs\2026-06-09T08_26_40_511Z-
+10 verbose logfile C:\Users\user\Desktop\messenger-hw\backend\.npm-cache-temp2\_logs\2026-06-09T08_26_40_511Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4496293888 maxSize:1124073472 maxEntrySize:562036736
+13 silly idealTree buildDeps
+14 silly reify moves {}
+15 silly audit bulk request {
+15 silly audit   accepts: [ '1.3.8' ],
+15 silly audit   'array-flatten': [ '1.1.1' ],
+15 silly audit   bcryptjs: [ '2.4.3' ],
+15 silly audit   'body-parser': [ '1.20.5' ],
+15 silly audit   'buffer-equal-constant-time': [ '1.0.1' ],
+15 silly audit   bytes: [ '3.1.2' ],
+15 silly audit   'call-bind-apply-helpers': [ '1.0.2' ],
+15 silly audit   'call-bound': [ '1.0.4' ],
+15 silly audit   'content-disposition': [ '0.5.4' ],
+15 silly audit   'content-type': [ '1.0.5' ],
+15 silly audit   cookie: [ '0.7.2' ],
+15 silly audit   'cookie-signature': [ '1.0.7' ],
+15 silly audit   cors: [ '2.8.6' ],
+15 silly audit   debug: [ '2.6.9' ],
+15 silly audit   depd: [ '2.0.0' ],
+15 silly audit   destroy: [ '1.2.0' ],
+15 silly audit   'dunder-proto': [ '1.0.1' ],
+15 silly audit   'ecdsa-sig-formatter': [ '1.0.11' ],
+15 silly audit   'ee-first': [ '1.1.1' ],
+15 silly audit   encodeurl: [ '2.0.0' ],
+15 silly audit   'es-define-property': [ '1.0.1' ],
+15 silly audit   'es-errors': [ '1.3.0' ],
+15 silly audit   'es-object-atoms': [ '1.1.2' ],
+15 silly audit   'escape-html': [ '1.0.3' ],
+15 silly audit   etag: [ '1.8.1' ],
+15 silly audit   express: [ '4.22.2' ],
+15 silly audit   finalhandler: [ '1.3.2' ],
+15 silly audit   forwarded: [ '0.2.0' ],
+15 silly audit   fresh: [ '0.5.2' ],
+15 silly audit   'function-bind': [ '1.1.2' ],
+15 silly audit   'get-intrinsic': [ '1.3.0' ],
+15 silly audit   'get-proto': [ '1.0.1' ],
+15 silly audit   gopd: [ '1.2.0' ],
+15 silly audit   'has-symbols': [ '1.1.0' ],
+15 silly audit   hasown: [ '2.0.4' ],
+15 silly audit   'http-errors': [ '2.0.1' ],
+15 silly audit   'iconv-lite': [ '0.4.24' ],
+15 silly audit   inherits: [ '2.0.4' ],
+15 silly audit   'ipaddr.js': [ '1.9.1' ],
+15 silly audit   jsonwebtoken: [ '9.0.3' ],
+15 silly audit   ms: [ '2.1.3', '2.0.0' ],
+15 silly audit   jwa: [ '2.0.1' ],
+15 silly audit   jws: [ '4.0.1' ],
+15 silly audit   'lodash.includes': [ '4.3.0' ],
+15 silly audit   'lodash.isboolean': [ '3.0.3' ],
+15 silly audit   'lodash.isinteger': [ '4.0.4' ],
+15 silly audit   'lodash.isnumber': [ '3.0.3' ],
+15 silly audit   'lodash.isplainobject': [ '4.0.6' ],
+15 silly audit   'lodash.isstring': [ '4.0.1' ],
+15 silly audit   'lodash.once': [ '4.1.1' ],
+15 silly audit   'math-intrinsics': [ '1.1.0' ],
+15 silly audit   'media-typer': [ '0.3.0' ],
+15 silly audit   'merge-descriptors': [ '1.0.3' ],
+15 silly audit   methods: [ '1.1.2' ],
+15 silly audit   mime: [ '1.6.0' ],
+15 silly audit   'mime-db': [ '1.52.0' ],
+15 silly audit   'mime-types': [ '2.1.35' ],
+15 silly audit   negotiator: [ '0.6.3' ],
+15 silly audit   'object-assign': [ '4.1.1' ],
+15 silly audit   'object-inspect': [ '1.13.4' ],
+15 silly audit   'on-finished': [ '2.4.1' ],
+15 silly audit   parseurl: [ '1.3.3' ],
+15 silly audit   'path-to-regexp': [ '0.1.13' ],
+15 silly audit   'proxy-addr': [ '2.0.7' ],
+15 silly audit   qs: [ '6.15.2' ],
+15 silly audit   'range-parser': [ '1.2.1' ],
+15 silly audit   'raw-body': [ '2.5.3' ],
+15 silly audit   'safe-buffer': [ '5.2.1' ],
+15 silly audit   'safer-buffer': [ '2.1.2' ],
+15 silly audit   semver: [ '7.8.3' ],
+15 silly audit   send: [ '0.19.2' ],
+15 silly audit   'serve-static': [ '1.16.3' ],
+15 silly audit   setprototypeof: [ '1.2.0' ],
+15 silly audit   'side-channel': [ '1.1.1' ],
+15 silly audit   'side-channel-list': [ '1.0.1' ],
+15 silly audit   'side-channel-map': [ '1.0.1' ],
+15 silly audit   'side-channel-weakmap': [ '1.0.2' ],
+15 silly audit   statuses: [ '2.0.2' ],
+15 silly audit   toidentifier: [ '1.0.1' ],
+15 silly audit   'type-is': [ '1.6.18' ],
+15 silly audit   unpipe: [ '1.0.0' ],
+15 silly audit   'utils-merge': [ '1.0.1' ],
+15 silly audit   uuid: [ '9.0.1' ],
+15 silly audit   vary: [ '1.1.2' ]
+15 silly audit }
+16 http fetch GET 200 https://registry.npmjs.org/npm 172ms
+17 http fetch GET 200 https://registry.npmjs.org/send/-/send-0.19.2.tgz 144ms (cache miss)
+18 http fetch GET 200 https://registry.npmjs.org/vary/-/vary-1.1.2.tgz 183ms (cache miss)
+19 http fetch GET 200 https://registry.npmjs.org/toidentifier/-/toidentifier-1.0.1.tgz 187ms (cache miss)
+20 http fetch GET 200 https://registry.npmjs.org/utils-merge/-/utils-merge-1.0.1.tgz 202ms (cache miss)
+21 http fetch GET 200 https://registry.npmjs.org/setprototypeof/-/setprototypeof-1.2.0.tgz 215ms (cache miss)
+22 http fetch GET 200 https://registry.npmjs.org/type-is/-/type-is-1.6.18.tgz 221ms (cache miss)
+23 http fetch GET 200 https://registry.npmjs.org/unpipe/-/unpipe-1.0.0.tgz 227ms (cache miss)
+24 warn tarball tarball data for lodash.once@https://registry.npmjs.org/lodash.once/-/lodash.once-4.1.1.tgz (sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6SJoNTSJUUswT651yww3Mg==) seems to be corrupted. Trying again.
+25 http fetch GET 200 https://registry.npmjs.org/range-parser/-/range-parser-1.2.1.tgz 249ms (cache miss)
+26 http fetch GET 200 https://registry.npmjs.org/path-to-regexp/-/path-to-regexp-0.1.13.tgz 283ms (cache miss)
+27 http fetch GET 200 https://registry.npmjs.org/object-assign/-/object-assign-4.1.1.tgz 298ms (cache miss)
+28 http fetch GET 200 https://registry.npmjs.org/ms/-/ms-2.0.0.tgz 307ms (cache miss)
+29 http fetch GET 200 https://registry.npmjs.org/parseurl/-/parseurl-1.3.3.tgz 308ms (cache miss)
+30 http fetch GET 200 https://registry.npmjs.org/lodash.once/-/lodash.once-4.1.1.tgz 314ms (cache miss)
+31 http fetch GET 200 https://registry.npmjs.org/statuses/-/statuses-2.0.2.tgz 333ms (cache miss)
+32 http fetch GET 200 https://registry.npmjs.org/methods/-/methods-1.1.2.tgz 332ms (cache miss)
+33 http fetch GET 200 https://registry.npmjs.org/media-typer/-/media-typer-0.3.0.tgz 332ms (cache miss)
+34 http fetch GET 200 https://registry.npmjs.org/raw-body/-/raw-body-2.5.3.tgz 343ms (cache miss)
+35 http fetch GET 200 https://registry.npmjs.org/safe-buffer/-/safe-buffer-5.2.1.tgz 344ms (cache miss)
+36 http fetch GET 200 https://registry.npmjs.org/lodash.isstring/-/lodash.isstring-4.0.1.tgz 353ms (cache miss)
+37 http fetch GET 200 https://registry.npmjs.org/lodash.isplainobject/-/lodash.isplainobject-4.0.6.tgz 353ms (cache miss)
+38 http fetch GET 200 https://registry.npmjs.org/merge-descriptors/-/merge-descriptors-1.0.3.tgz 366ms (cache miss)
+39 http fetch GET 200 https://registry.npmjs.org/lodash.isnumber/-/lodash.isnumber-3.0.3.tgz 365ms (cache miss)
+40 http fetch GET 200 https://registry.npmjs.org/side-channel-map/-/side-channel-map-1.0.1.tgz 378ms (cache miss)
+41 http fetch GET 200 https://registry.npmjs.org/lodash.isinteger/-/lodash.isinteger-4.0.4.tgz 369ms (cache miss)
+42 http fetch GET 200 https://registry.npmjs.org/jws/-/jws-4.0.1.tgz 369ms (cache miss)
+43 http fetch GET 200 https://registry.npmjs.org/on-finished/-/on-finished-2.4.1.tgz 384ms (cache miss)
+44 warn tarball tarball data for lodash.once@https://registry.npmjs.org/lodash.once/-/lodash.once-4.1.1.tgz (sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6SJoNTSJUUswT651yww3Mg==) seems to be corrupted. Trying again.
+45 http fetch GET 200 https://registry.npmjs.org/jwa/-/jwa-2.0.1.tgz 385ms (cache miss)
+46 http fetch GET 200 https://registry.npmjs.org/lodash.isboolean/-/lodash.isboolean-3.0.3.tgz 387ms (cache miss)
+47 http fetch GET 200 https://registry.npmjs.org/proxy-addr/-/proxy-addr-2.0.7.tgz 397ms (cache miss)
+48 http fetch GET 200 https://registry.npmjs.org/mime-types/-/mime-types-2.1.35.tgz 399ms (cache miss)
+49 http fetch GET 200 https://registry.npmjs.org/serve-static/-/serve-static-1.16.3.tgz 403ms (cache miss)
+50 http fetch GET 200 https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz 396ms (cache miss)
+51 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 439ms
+52 silly audit report {
+52 silly audit report   uuid: [
+52 silly audit report     {
+52 silly audit report       id: 1119441,
+52 silly audit report       url: 'https://github.com/advisories/GHSA-w5hq-g745-h8pq',
+52 silly audit report       title: 'uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided',
+52 silly audit report       severity: 'moderate',
+52 silly audit report       vulnerable_versions: '<11.1.1',
+52 silly audit report       cwe: [Array],
+52 silly audit report       cvss: [Object]
+52 silly audit report     }
+52 silly audit report   ]
+52 silly audit report }
+53 silly packumentCache corgi:https://registry.npmjs.org/uuid cache-miss
+54 warn tarball tarball data for http-errors@https://registry.npmjs.org/http-errors/-/http-errors-2.0.1.tgz (sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==) seems to be corrupted. Trying again.
+55 http fetch GET 200 https://registry.npmjs.org/side-channel-weakmap/-/side-channel-weakmap-1.0.2.tgz 424ms (cache miss)
+56 http fetch GET 200 https://registry.npmjs.org/fresh/-/fresh-0.5.2.tgz 416ms (cache miss)
+57 http fetch GET 200 https://registry.npmjs.org/mime-db/-/mime-db-1.52.0.tgz 424ms (cache miss)
+58 http fetch GET 200 https://registry.npmjs.org/side-channel/-/side-channel-1.1.1.tgz 429ms (cache miss)
+59 http fetch GET 200 https://registry.npmjs.org/side-channel-list/-/side-channel-list-1.0.1.tgz 435ms (cache miss)
+60 http fetch GET 200 https://registry.npmjs.org/http-errors/-/http-errors-2.0.1.tgz 426ms (cache miss)
+61 http fetch GET 200 https://registry.npmjs.org/forwarded/-/forwarded-0.2.0.tgz 428ms (cache miss)
+62 http fetch GET 200 https://registry.npmjs.org/escape-html/-/escape-html-1.0.3.tgz 428ms (cache miss)
+63 http fetch GET 200 https://registry.npmjs.org/etag/-/etag-1.8.1.tgz 430ms (cache miss)
+64 http fetch GET 200 https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz 432ms (cache miss)
+65 http fetch GET 200 https://registry.npmjs.org/encodeurl/-/encodeurl-2.0.0.tgz 434ms (cache miss)
+66 http fetch GET 200 https://registry.npmjs.org/lodash.includes/-/lodash.includes-4.3.0.tgz 442ms (cache miss)
+67 http fetch GET 200 https://registry.npmjs.org/ipaddr.js/-/ipaddr.js-1.9.1.tgz 442ms (cache miss)
+68 http fetch GET 200 https://registry.npmjs.org/destroy/-/destroy-1.2.0.tgz 439ms (cache miss)
+69 http fetch GET 200 https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz 453ms (cache miss)
+70 http fetch GET 200 https://registry.npmjs.org/buffer-equal-constant-time/-/buffer-equal-constant-time-1.0.1.tgz 446ms (cache miss)
+71 http fetch GET 200 https://registry.npmjs.org/cors/-/cors-2.8.6.tgz 451ms (cache miss)
+72 http fetch GET 200 https://registry.npmjs.org/cookie-signature/-/cookie-signature-1.0.7.tgz 451ms (cache miss)
+73 http fetch GET 200 https://registry.npmjs.org/array-flatten/-/array-flatten-1.1.1.tgz 456ms (cache miss)
+74 http fetch GET 200 https://registry.npmjs.org/content-type/-/content-type-1.0.5.tgz 458ms (cache miss)
+75 http fetch GET 200 https://registry.npmjs.org/finalhandler/-/finalhandler-1.3.2.tgz 465ms (cache miss)
+76 http fetch GET 200 https://registry.npmjs.org/ms/-/ms-2.1.3.tgz 461ms (cache miss)
+77 http fetch GET 200 https://registry.npmjs.org/depd/-/depd-2.0.0.tgz 465ms (cache miss)
+78 http fetch GET 200 https://registry.npmjs.org/bytes/-/bytes-3.1.2.tgz 463ms (cache miss)
+79 http fetch GET 200 https://registry.npmjs.org/ms/-/ms-2.1.3.tgz 466ms (cache miss)
+80 http fetch GET 200 https://registry.npmjs.org/lodash.once/-/lodash.once-4.1.1.tgz 228ms (cache miss)
+81 http fetch GET 200 https://registry.npmjs.org/hasown/-/hasown-2.0.4.tgz 481ms (cache miss)
+82 http fetch GET 200 https://registry.npmjs.org/ecdsa-sig-formatter/-/ecdsa-sig-formatter-1.0.11.tgz 481ms (cache miss)
+83 http fetch GET 200 https://registry.npmjs.org/content-disposition/-/content-disposition-0.5.4.tgz 481ms (cache miss)
+84 http fetch GET 200 https://registry.npmjs.org/negotiator/-/negotiator-0.6.3.tgz 493ms (cache miss)
+85 http fetch GET 200 https://registry.npmjs.org/cookie/-/cookie-0.7.2.tgz 483ms (cache miss)
+86 http fetch GET 200 https://registry.npmjs.org/accepts/-/accepts-1.3.8.tgz 483ms (cache miss)
+87 http fetch GET 200 https://registry.npmjs.org/gopd/-/gopd-1.2.0.tgz 497ms (cache miss)
+88 http fetch GET 200 https://registry.npmjs.org/get-intrinsic/-/get-intrinsic-1.3.0.tgz 499ms (cache miss)
+89 http fetch GET 200 https://registry.npmjs.org/es-define-property/-/es-define-property-1.0.1.tgz 498ms (cache miss)
+90 http fetch GET 200 https://registry.npmjs.org/function-bind/-/function-bind-1.1.2.tgz 508ms (cache miss)
+91 http fetch GET 200 https://registry.npmjs.org/call-bound/-/call-bound-1.0.4.tgz 508ms (cache miss)
+92 http fetch GET 200 https://registry.npmjs.org/get-proto/-/get-proto-1.0.1.tgz 514ms (cache miss)
+93 warn tarball tarball data for http-errors@https://registry.npmjs.org/http-errors/-/http-errors-2.0.1.tgz (sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==) seems to be corrupted. Trying again.
+94 http fetch GET 200 https://registry.npmjs.org/mime/-/mime-1.6.0.tgz 525ms (cache miss)
+95 http fetch GET 200 https://registry.npmjs.org/http-errors/-/http-errors-2.0.1.tgz 105ms (cache miss)
+96 http fetch GET 200 https://registry.npmjs.org/es-object-atoms/-/es-object-atoms-1.1.2.tgz 529ms (cache miss)
+97 http fetch GET 200 https://registry.npmjs.org/dunder-proto/-/dunder-proto-1.0.1.tgz 529ms (cache miss)
+98 http fetch GET 200 https://registry.npmjs.org/has-symbols/-/has-symbols-1.1.0.tgz 543ms (cache miss)
+99 http fetch GET 200 https://registry.npmjs.org/debug/-/debug-2.6.9.tgz 556ms (cache miss)
+100 http fetch GET 200 https://registry.npmjs.org/body-parser/-/body-parser-1.20.5.tgz 554ms (cache miss)
+101 http fetch GET 200 https://registry.npmjs.org/es-errors/-/es-errors-1.3.0.tgz 560ms (cache miss)
+102 http fetch GET 200 https://registry.npmjs.org/call-bind-apply-helpers/-/call-bind-apply-helpers-1.0.2.tgz 559ms (cache miss)
+103 http fetch GET 200 https://registry.npmjs.org/jsonwebtoken/-/jsonwebtoken-9.0.3.tgz 574ms (cache miss)
+104 http fetch GET 200 https://registry.npmjs.org/qs/-/qs-6.15.2.tgz 601ms (cache miss)
+105 http fetch GET 200 https://registry.npmjs.org/express/-/express-4.22.2.tgz 597ms (cache miss)
+106 http fetch GET 200 https://registry.npmjs.org/uuid 195ms (cache miss)
+107 silly packumentCache corgi:https://registry.npmjs.org/uuid set size:undefined disposed:false
+108 http fetch GET 200 https://registry.npmjs.org/math-intrinsics/-/math-intrinsics-1.1.0.tgz 610ms (cache miss)
+109 http fetch GET 200 https://registry.npmjs.org/object-inspect/-/object-inspect-1.13.4.tgz 631ms (cache miss)
+110 http fetch GET 200 https://registry.npmjs.org/bcryptjs/-/bcryptjs-2.4.3.tgz 623ms (cache miss)
+111 http fetch GET 200 https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.4.24.tgz 637ms (cache miss)
+112 http fetch GET 200 https://registry.npmjs.org/semver/-/semver-7.8.3.tgz 647ms (cache miss)
+113 http fetch GET 200 https://registry.npmjs.org/uuid/-/uuid-9.0.1.tgz 681ms (cache miss)
+114 warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+115 warn cleanup Failed to remove some directories [
+115 warn cleanup   [
+115 warn cleanup     '\\\\?\\C:\\Users\\user\\Desktop\\messenger-hw\\backend\\node_modules',
+115 warn cleanup     [Error: EPERM: operation not permitted, rmdir 'C:\Users\user\Desktop\messenger-hw\backend\node_modules\jsonwebtoken\node_modules'] {
+115 warn cleanup       errno: -4048,
+115 warn cleanup       code: 'EPERM',
+115 warn cleanup       syscall: 'rmdir',
+115 warn cleanup       path: 'C:\\Users\\user\\Desktop\\messenger-hw\\backend\\node_modules\\jsonwebtoken\\node_modules'
+115 warn cleanup     }
+115 warn cleanup   ]
+115 warn cleanup ]
+116 verbose stack Error: sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6SJoNTSJUUswT651yww3Mg== integrity checksum failed when using sha512: wanted sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6SJoNTSJUUswT651yww3Mg== but got sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6dSJoNTSJUUswT651yww3Mg==. (3903 bytes)
+116 verbose stack     at #onEnd (C:\Users\user\AppData\Roaming\npm\node_modules\npm\node_modules\ssri\lib\index.js:116:19)
+116 verbose stack     at IntegrityStream.emit (C:\Users\user\AppData\Roaming\npm\node_modules\npm\node_modules\ssri\lib\index.js:88:18)
+116 verbose stack     at [maybeEmitEnd] (C:\Users\user\AppData\Roaming\npm\node_modules\npm\node_modules\minipass\dist\commonjs\index.js:721:18)
+116 verbose stack     at IntegrityStream.emit (C:\Users\user\AppData\Roaming\npm\node_modules\npm\node_modules\minipass\dist\commonjs\index.js:802:29)
+116 verbose stack     at IntegrityStream.emit (C:\Users\user\AppData\Roaming\npm\node_modules\npm\node_modules\ssri\lib\index.js:90:18)
+116 verbose stack     at [flush] (C:\Users\user\AppData\Roaming\npm\node_modules\npm\node_modules\minipass\dist\commonjs\index.js:551:18)
+116 verbose stack     at [resume] (C:\Users\user\AppData\Roaming\npm\node_modules\npm\node_modules\minipass\dist\commonjs\index.js:488:24)
+116 verbose stack     at IntegrityStream.resume (C:\Users\user\AppData\Roaming\npm\node_modules\npm\node_modules\minipass\dist\commonjs\index.js:504:28)
+116 verbose stack     at CachingMinipassPipeline.emit (C:\Users\user\AppData\Roaming\npm\node_modules\npm\node_modules\minipass-pipeline\index.js:105:19)
+116 verbose stack     at CachingMinipassPipeline.emit (C:\Users\user\AppData\Roaming\npm\node_modules\npm\node_modules\make-fetch-happen\lib\pipeline.js:37:18)
+117 error code EINTEGRITY
+118 error sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6SJoNTSJUUswT651yww3Mg== integrity checksum failed when using sha512: wanted sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6SJoNTSJUUswT651yww3Mg== but got sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6dSJoNTSJUUswT651yww3Mg==. (3903 bytes)
+119 silly unfinished npm timer reify 1780993600898
+120 silly unfinished npm timer reify:unpack 1780993600961
+121 silly unfinished npm timer reifyNode:node_modules/lodash.once 1780993600962
+122 silly unfinished npm timer reifyNode:node_modules/http-errors 1780993600962
+123 verbose cwd C:\Users\user\Desktop\messenger-hw\backend
+124 verbose os Windows_NT 10.0.19045
+125 verbose node v24.14.0
+126 verbose npm  v11.11.0
+127 notice
+127 notice New [33mminor[39m version of npm available! [33m11.11.0[39m -> [34m11.16.0[39m
+127 notice Changelog: [34mhttps://github.com/npm/cli/releases/tag/v11.16.0[39m
+127 notice To update run: [4mnpm install -g npm@11.16.0[24m
+127 notice  { force: true, Symbol(proc-log.meta): true }
+128 verbose exit 1
+129 verbose code 1
+130 error A complete log of this run can be found in: C:\Users\user\Desktop\messenger-hw\backend\.npm-cache-temp2\_logs\2026-06-09T08_26_40_511Z-debug-0.log

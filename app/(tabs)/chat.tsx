@@ -1,125 +1,136 @@
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { supabaseFetch } from '../../supabaseConfig';
 
-import { useAppStore } from '@/context/app-store';
-
-export default function ChatDetailScreen() {
-  const { friendId } = useLocalSearchParams<{ friendId?: string }>();
-  const router = useRouter(); 
+export default function ChatScreen() {
+  const router = useRouter();
+  // 接收首頁傳過來的好友參數
+  const { friendEmail, friendName, friendAvatar, myEmail } = useLocalSearchParams() as any;
+  
+  const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
-  const [feedback, setFeedback] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
-  const { currentUser, refresh, getUserById, getConversationWithFriend, sendMessage } = useAppStore();
-  const friend = friendId ? getUserById(friendId) : undefined;
-  const messages = friendId ? getConversationWithFriend(friendId)?.messages ?? [] : [];
+  const flatListRef = useRef<FlatList>(null);
 
+  // 決定此二人的專屬獨立聊天室唯一 ID (排序防呆，確保 A_B 與 B_A 在同一個對話群)
+  const chatId = myEmail < friendEmail ? `${myEmail}_${friendEmail}` : `${friendEmail}_${myEmail}`;
+
+  // 半即時效果：每 1.5 秒高速向雲端獲取最新對話訊息
   useEffect(() => {
-    scrollViewRef.current?.scrollToEnd({ animated: true });
-  }, [messages.length]);
-
-  async function handleRefresh() {
-    setRefreshing(true);
-    await refresh();
-    setRefreshing(false);
-  }
-
-  async function handleSendMessage() {
-    if (!friendId) {
-      return;
+    async function fetchChatMessages() {
+      try {
+        const data = await supabaseFetch(`chat_messages?chat_id=eq.${chatId}&order=created_at.asc`);
+        if (data && Array.isArray(data)) {
+          setMessages(data);
+        }
+      } catch (e) {
+        console.error("抓取聊天訊息失敗", e);
+      }
     }
+
+    fetchChatMessages();
+    const interval = setInterval(fetchChatMessages, 1500);
+    return () => clearInterval(interval);
+  }, [chatId]);
+
+  // 送出訊息至 Supabase
+  async function handleSendMessage() {
+    if (!inputText.trim()) return;
+    const sendText = inputText.trim();
+    setInputText('');
 
     try {
-      await sendMessage(friendId, inputText);
-      setInputText('');
-      setFeedback('');
-      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
-    } catch (error) {
-      setFeedback(error instanceof Error ? error.message : '訊息送出失敗。');
+      await supabaseFetch('chat_messages', 'POST', {
+        chat_id: chatId,
+        sender_email: myEmail,
+        text: sendText
+      });
+      
+      // 送出後立即重新抓取一次
+      const data = await supabaseFetch(`chat_messages?chat_id=eq.${chatId}&order=created_at.asc`);
+      if (data && Array.isArray(data)) {
+        setMessages(data);
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      }
+    } catch (err) {
+      console.error("發送訊息失敗", err);
     }
-  }
-
-  if (!currentUser || !friendId || !friend) {
-    return (
-      <View style={styles.emptyScreen}>
-        <Text style={styles.emptyTitle}>找不到聊天室</Text>
-        <Text style={styles.emptyText}>請先建立好友，再從聊天列表進入對話。</Text>
-      </View>
-    );
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#fff' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
-      <Stack.Screen options={{ 
-        headerShown: true,
-        headerTitle: "",
-        headerLeft: () => (
-          <View style={styles.headerLeftContainer}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}><FontAwesome name="chevron-left" size={20} color="#0084FF" /></TouchableOpacity>
-            <Image source={{ uri: friend.avatarUri }} style={styles.headerAvatar} />
-            <Text style={styles.headerNameText}>{friend.username}</Text>
-          </View>
-        ),
-        headerRight: () => (
-          <View style={styles.headerRightContainer}>
-            <TouchableOpacity style={styles.iconBtn}><Ionicons name="call" size={22} color="#0084FF" /></TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn}><Ionicons name="videocam" size={24} color="#0084FF" /></TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn}><Ionicons name="information-circle" size={24} color="#0084FF" /></TouchableOpacity>
-          </View>
-        ),
-      }} />
-      <ScrollView
-        ref={scrollViewRef}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-        contentContainerStyle={styles.chatArea}>
-        {messages.length === 0 ? (
-          <View style={styles.emptyConversationCard}>
-            <Text style={styles.emptyConversationTitle}>還沒有訊息</Text>
-            <Text style={styles.emptyConversationText}>現在送出第一則訊息，對方下次登入並下拉重新整理後就能看到。</Text>
-          </View>
-        ) : null}
-        {messages.map((m) => (
-          <View key={m.id} style={m.senderId === currentUser.id ? styles.outBubble : styles.inBubble}>
-            <Text style={m.senderId === currentUser.id ? styles.outText : styles.inText}>{m.text}</Text>
-            <Text style={m.senderId === currentUser.id ? styles.outMeta : styles.inMeta}>
-              {new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(m.createdAt))}
-            </Text>
-          </View>
-        ))}
-      </ScrollView>
-      {feedback ? <Text style={styles.feedbackText}>{feedback}</Text> : null}
-      <View style={styles.inputContainer}>
-        <TextInput style={styles.input} placeholder="傳送訊息..." value={inputText} onChangeText={setInputText} onSubmitEditing={handleSendMessage} returnKeyType="send" />
-        <TouchableOpacity onPress={handleSendMessage}><FontAwesome name="send" size={20} color="#0084FF" style={{ marginLeft: 15 }} /></TouchableOpacity>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* 聊天室頂部導覽列 */}
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backText}>⬅ 返回</Text>
+        </Pressable>
+        <Image source={{ uri: friendAvatar }} style={styles.headerAvatar} />
+        <Text style={styles.headerTitle}>{friendName}</Text>
+      </View>
+
+      {/* 訊息對話列表 */}
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        keyExtractor={(item: any) => item.id?.toString()}
+        contentContainerStyle={{ padding: 16, paddingBottom: 30 }}
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        renderItem={({ item }) => {
+          const isMe = item.sender_email === myEmail;
+          const timeString = new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+          
+          return (
+            <View style={[styles.msgRow, isMe ? styles.myRow : styles.friendRow]}>
+              {!isMe && <Image source={{ uri: friendAvatar }} style={styles.msgAvatar} />}
+              <View style={styles.msgBody}>
+                <View style={[styles.bubble, isMe ? styles.myBubble : styles.friendBubble]}>
+                  <Text style={[styles.bubbleText, isMe ? styles.myText : styles.friendText]}>{item.text}</Text>
+                </View>
+                <Text style={[styles.timeText, isMe ? { textAlign: 'right' } : { textAlign: 'left' }]}>{timeString}</Text>
+              </View>
+            </View>
+          );
+        }}
+      />
+
+      {/* 底部文字輸入欄位 */}
+      <View style={styles.inputBar}>
+        <TextInput
+          style={styles.textInput}
+          placeholder="請輸入訊息..."
+          value={inputText}
+          onChangeText={setInputText}
+          onSubmitEditing={handleSendMessage}
+        />
+        <Pressable style={styles.sendBtn} onPress={handleSendMessage}>
+          <Text style={styles.sendBtnText}>發送</Text>
+        </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  emptyScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', paddingHorizontal: 24 },
-  emptyTitle: { fontSize: 24, fontWeight: '700', color: '#0f172a' },
-  emptyText: { marginTop: 10, fontSize: 15, lineHeight: 22, textAlign: 'center', color: '#64748b' },
-  headerLeftContainer: { flexDirection: 'row', alignItems: 'center', marginLeft: 10 },
-  backBtn: { paddingRight: 10 },
+  container: { flex: 1, backgroundColor: '#f1f5f9' },
+  header: { paddingTop: 50, pb: 12, px: 16, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderColor: '#e2e8f0', paddingBottom: 12 },
+  backBtn: { marginRight: 12 },
+  backText: { fontSize: 16, color: '#0084FF', fontWeight: '600' },
   headerAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10 },
-  headerNameText: { fontSize: 16, fontWeight: 'bold' },
-  headerRightContainer: { flexDirection: 'row', alignItems: 'center', marginRight: 10 },
-  iconBtn: { paddingHorizontal: 8 },
-  chatArea: { padding: 15, paddingBottom: 20 },
-  emptyConversationCard: { backgroundColor: '#eff6ff', borderRadius: 22, padding: 18, marginBottom: 16 },
-  emptyConversationTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 6 },
-  emptyConversationText: { fontSize: 14, lineHeight: 20, color: '#475569' },
-  inBubble: { backgroundColor: '#f0f0f0', padding: 12, borderRadius: 20, alignSelf: 'flex-start', marginBottom: 10, maxWidth: '80%' },
-  outBubble: { backgroundColor: '#0084FF', padding: 12, borderRadius: 20, alignSelf: 'flex-end', marginBottom: 10, maxWidth: '80%' },
-  inText: { fontSize: 16, color: '#000' },
-  outText: { fontSize: 16, color: '#fff' },
-  inMeta: { marginTop: 6, fontSize: 11, color: '#64748b' },
-  outMeta: { marginTop: 6, fontSize: 11, color: '#dbeafe' },
-  feedbackText: { paddingHorizontal: 14, paddingBottom: 6, color: '#dc2626', fontSize: 13 },
-  inputContainer: { flexDirection: 'row', padding: 10, alignItems: 'center', borderTopWidth: 0.5, borderTopColor: '#eee', paddingBottom: Platform.OS === 'ios' ? 30 : 10, backgroundColor: '#fff' },
-  input: { flex: 1, backgroundColor: '#f0f0f0', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 8, fontSize: 16 },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
+  msgRow: { flexDirection: 'row', marginBottom: 16, maxWidth: '80%' },
+  myRow: { alignSelf: 'end', flexDirection: 'row-reverse' },
+  friendRow: { alignSelf: 'start' },
+  msgAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 8, marginTop: 4 },
+  msgBody: { mx: 6 },
+  bubble: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
+  myBubble: { backgroundColor: '#0084FF', borderBottomRightRadius: 4 },
+  friendBubble: { backgroundColor: '#fff', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#e2e8f0' },
+  bubbleText: { fontSize: 15 },
+  myText: { color: '#fff' },
+  friendText: { color: '#0f172a' },
+  timeText: { fontSize: 10, color: '#94a3b8', marginTop: 4, paddingHorizontal: 4 },
+  inputBar: { flexDirection: 'row', padding: 12, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#e2e8f0', alignItems: 'center' },
+  textInput: { flex: 1, backgroundColor: '#f1f5f9', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, marginRight: 10 },
+  sendBtn: { backgroundColor: '#0084FF', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20 },
+  sendBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 }
 });

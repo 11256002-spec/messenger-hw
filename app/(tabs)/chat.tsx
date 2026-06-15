@@ -1,21 +1,38 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
 import { supabaseFetch } from '../../supabaseConfig';
 
 export default function ChatScreen() {
   const router = useRouter();
-  // 接收首頁傳過來的好友參數
-  const { friendEmail, friendName, friendAvatar, myEmail } = useLocalSearchParams() as any;
+  const { friendEmail, myEmail } = useLocalSearchParams() as any;
   
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
+  const [friendInfo, setFriendInfo] = useState({ name: '', avatar: '' });
   const flatListRef = useRef<FlatList>(null);
 
-  // 決定此二人的專屬獨立聊天室唯一 ID (排序防呆，確保 A_B 與 B_A 在同一個對話群)
   const chatId = myEmail < friendEmail ? `${myEmail}_${friendEmail}` : `${friendEmail}_${myEmail}`;
+  const isMemoMode = myEmail === friendEmail; 
 
-  // 半即時效果：每 1.5 秒高速向雲端獲取最新對話訊息
+  useEffect(() => {
+    async function fetchFriendInfo() {
+      if (!friendEmail) return;
+      if (isMemoMode) {
+        setFriendInfo({ name: 'Keep Memo', avatar: '' });
+        return;
+      }
+      const data = await supabaseFetch(`app_users?email=eq.${friendEmail}`, 'GET');
+      if (data && data.length > 0) {
+        setFriendInfo({
+          name: data[0].name || friendEmail.split('@')[0],
+          avatar: data[0].avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
+        });
+      }
+    }
+    fetchFriendInfo();
+  }, [friendEmail, isMemoMode]);
+
   useEffect(() => {
     async function fetchChatMessages() {
       try {
@@ -33,7 +50,6 @@ export default function ChatScreen() {
     return () => clearInterval(interval);
   }, [chatId]);
 
-  // 送出訊息至 Supabase
   async function handleSendMessage() {
     if (!inputText.trim()) return;
     const sendText = inputText.trim();
@@ -46,7 +62,6 @@ export default function ChatScreen() {
         text: sendText
       });
       
-      // 送出後立即重新抓取一次
       const data = await supabaseFetch(`chat_messages?chat_id=eq.${chatId}&order=created_at.asc`);
       if (data && Array.isArray(data)) {
         setMessages(data);
@@ -58,79 +73,83 @@ export default function ChatScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      {/* 聊天室頂部導覽列 */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>⬅ 返回</Text>
-        </Pressable>
-        <Image source={{ uri: friendAvatar }} style={styles.headerAvatar} />
-        <Text style={styles.headerTitle}>{friendName}</Text>
-      </View>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0} >
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn}><Text style={styles.backText}>ㄑ 聊天</Text></Pressable>
+          <Text style={styles.headerTitle} numberOfLines={1}>{friendInfo.name}</Text>
+          <View style={{ width: 60 }} />
+        </View>
 
-      {/* 訊息對話列表 */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={(item: any) => item.id?.toString()}
-        contentContainerStyle={{ padding: 16, paddingBottom: 30 }}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        renderItem={({ item }) => {
-          const isMe = item.sender_email === myEmail;
-          const timeString = new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-          
-          return (
-            <View style={[styles.msgRow, isMe ? styles.myRow : styles.friendRow]}>
-              {!isMe && <Image source={{ uri: friendAvatar }} style={styles.msgAvatar} />}
-              <View style={styles.msgBody}>
-                <View style={[styles.bubble, isMe ? styles.myBubble : styles.friendBubble]}>
-                  <Text style={[styles.bubbleText, isMe ? styles.myText : styles.friendText]}>{item.text}</Text>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item: any) => item.id?.toString()}
+          contentContainerStyle={{ paddingHorizontal: 14, paddingVertical: 16, paddingBottom: 30 }}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          renderItem={({ item }) => {
+            const isMe = item.sender_email === myEmail;
+            const date = new Date(item.created_at);
+            const timeString = isNaN(date.getTime()) ? "" : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            
+            return (
+              <View style={[styles.msgRow, isMe ? styles.myRow : styles.friendRow]}>
+                {!isMe && (isMemoMode ? (
+                  <View style={[styles.msgAvatar, styles.memoAvatarInner]}><Text style={styles.memoAvatarTextInner}>Keep</Text></View>
+                ) : (
+                  <Image source={{ uri: friendInfo.avatar }} style={styles.msgAvatar} />
+                ))}
+                <View style={[styles.msgContentWrapper, isMe ? { flexDirection: 'row-reverse' } : { flexDirection: 'row' }]}>
+                  <View style={[styles.bubble, isMe ? styles.myBubble : styles.friendBubble]}><Text style={[styles.bubbleText, isMe ? styles.myText : styles.friendText]}>{item.text}</Text></View>
+                  <View style={styles.timeWrapper}><Text style={styles.timeText}>{timeString}</Text></View>
                 </View>
-                <Text style={[styles.timeText, isMe ? { textAlign: 'right' } : { textAlign: 'left' }]}>{timeString}</Text>
               </View>
-            </View>
-          );
-        }}
-      />
-
-      {/* 底部文字輸入欄位 */}
-      <View style={styles.inputBar}>
-        <TextInput
-          style={styles.textInput}
-          placeholder="請輸入訊息..."
-          value={inputText}
-          onChangeText={setInputText}
-          onSubmitEditing={handleSendMessage}
+            );
+          }}
         />
-        <Pressable style={styles.sendBtn} onPress={handleSendMessage}>
-          <Text style={styles.sendBtnText}>發送</Text>
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+
+        <View style={styles.inputBar}>
+          <TextInput
+            style={styles.textInput}
+            placeholder="輸入訊息..."
+            placeholderTextColor="#a1a1a1"
+            value={inputText}
+            onChangeText={setInputText}
+            // 👑 核心優化：綁定鍵盤 Enter 送出事件，讓實體鍵盤直接能打字傳送！
+            onSubmitEditing={handleSendMessage} 
+            returnKeyType="send"
+            enablesReturnKeyAutomatically={true}
+          />
+          <Pressable style={styles.sendBtn} onPress={handleSendMessage}><Text style={styles.sendBtnText}>傳送</Text></Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
-  header: { paddingTop: 50, pb: 12, px: 16, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderColor: '#e2e8f0', paddingBottom: 12 },
-  backBtn: { marginRight: 12 },
-  backText: { fontSize: 16, color: '#0084FF', fontWeight: '600' },
-  headerAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
-  msgRow: { flexDirection: 'row', marginBottom: 16, maxWidth: '80%' },
-  myRow: { alignSelf: 'end', flexDirection: 'row-reverse' },
-  friendRow: { alignSelf: 'start' },
-  msgAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 8, marginTop: 4 },
-  msgBody: { mx: 6 },
-  bubble: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
-  myBubble: { backgroundColor: '#0084FF', borderBottomRightRadius: 4 },
-  friendBubble: { backgroundColor: '#fff', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#e2e8f0' },
-  bubbleText: { fontSize: 15 },
-  myText: { color: '#fff' },
-  friendText: { color: '#0f172a' },
-  timeText: { fontSize: 10, color: '#94a3b8', marginTop: 4, paddingHorizontal: 4 },
-  inputBar: { flexDirection: 'row', padding: 12, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#e2e8f0', alignItems: 'center' },
-  textInput: { flex: 1, backgroundColor: '#f1f5f9', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, marginRight: 10 },
-  sendBtn: { backgroundColor: '#0084FF', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20 },
-  sendBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 }
+  container: { flex: 1, backgroundColor: '#8499B1' },
+  header: { paddingTop: 60, paddingBottom: 14, paddingHorizontal: 16, backgroundColor: '#06C755', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  backBtn: { width: 60 },
+  backText: { fontSize: 16, color: '#fff', fontWeight: '600' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', textAlign: 'center', flex: 1 },
+  msgRow: { flexDirection: 'row', marginBottom: 14, width: '100%' },
+  myRow: { justifyContent: 'flex-end' },
+  friendRow: { justifyContent: 'flex-start' },
+  msgAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 8, marginTop: 2 },
+  memoAvatarInner: { backgroundColor: '#004A26', justifyContent: 'center', alignItems: 'center' },
+  memoAvatarTextInner: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  msgContentWrapper: { maxWidth: '75%', alignItems: 'flex-end' },
+  bubble: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 16, maxWidth: '100%' },
+  myBubble: { backgroundColor: '#7ECE55', marginRight: 4, borderBottomRightRadius: 4 },
+  friendBubble: { backgroundColor: '#fff', marginLeft: 4, borderBottomLeftRadius: 4 },
+  bubbleText: { fontSize: 16, lineHeight: 21 },
+  myText: { color: '#000' },
+  friendText: { color: '#000' },
+  timeWrapper: { justifyContent: 'flex-end', paddingBottom: 2, marginHorizontal: 4 },
+  timeText: { fontSize: 11, color: 'rgba(255,255,255,0.85)' },
+  inputBar: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#fff', alignItems: 'center' },
+  textInput: { flex: 1, backgroundColor: '#f5f5f5', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, fontSize: 16, marginRight: 10, color: '#000', maxHeight: 100 },
+  sendBtn: { backgroundColor: '#06C755', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18 },
+  sendBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 }
 });

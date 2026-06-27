@@ -1,18 +1,23 @@
+import { useAppStore } from '@/context/app-store';
 import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { supabaseFetch } from '../../supabaseConfig';
 
 export default function ExploreScreen() {
   const [searchEmail, setSearchEmail] = useState('');
-  const [myEmail, setMyEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const { currentUserEmail } = useAppStore();
 
   async function handleAddFriend() {
-    const me = myEmail.trim().toLowerCase();
+    const me = (currentUserEmail ?? '').trim().toLowerCase();
     const friend = searchEmail.trim().toLowerCase();
 
-    if (!me || !friend) {
-      alert('請填寫你自己的 Email 以及要加入的好友 Email！');
+    if (!me) {
+      alert('請先登入後再加好友。');
+      return;
+    }
+    if (!friend) {
+      alert('請輸入要加入的好友 Email！');
       return;
     }
     if (me === friend) {
@@ -70,16 +75,9 @@ export default function ExploreScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>探索與加好友</Text>
-      <Text style={styles.subtitle}>請輸入組員的 Email 帳號進行雲端好友綁定</Text>
+      <Text style={styles.subtitle}>目前登入：{currentUserEmail ?? '尚未登入'}</Text>
 
       <View style={styles.card}>
-        <TextInput
-          style={styles.input}
-          placeholder="驗證：請先輸入你目前登入的 Email"
-          value={myEmail}
-          onChangeText={setMyEmail}
-          autoCapitalize="none"
-        />
         <TextInput
           style={styles.input}
           placeholder="請輸入組員或好友的 Email"

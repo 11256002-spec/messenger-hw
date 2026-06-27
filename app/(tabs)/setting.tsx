@@ -177,7 +177,7 @@ export default function SettingScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#003049" />
+        <ActivityIndicator size="large" color="#1d2a36" />
       </View>
     );
   }
@@ -224,7 +224,7 @@ export default function SettingScreen() {
             <TextInput
               style={styles.input}
               placeholder="請輸入您的暱稱"
-              placeholderTextColor="#669bbc"
+              placeholderTextColor="#7f8a94"
               value={name}
               onChangeText={setName}
               returnKeyType="next"
@@ -238,7 +238,7 @@ export default function SettingScreen() {
               <TextInput
                 style={styles.passwordInput}
                 placeholder="請輸入新密碼"
-                placeholderTextColor="#669bbc"
+                placeholderTextColor="#7f8a94"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={isPasswordSecure} // 👑 true為暗碼，false為明碼
@@ -253,7 +253,7 @@ export default function SettingScreen() {
                 <FontAwesome 
                   name={isPasswordSecure ? "eye-slash" : "eye"} 
                   size={20} 
-                  color="#780000" 
+                  color="#a58b6f" 
                 />
               </Pressable>
             </View>
@@ -279,64 +279,64 @@ export default function SettingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fdf0d5' },
+  container: { flex: 1, backgroundColor: '#f7f7f4' },
   scrollContent: { paddingHorizontal: 20, paddingTop: 54, paddingBottom: 40 },
   center: { justifyContent: 'center', alignItems: 'center' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   titleArea: { flex: 1 },
-  title: { fontSize: 30, fontWeight: '800', color: '#003049' },
-  subtitle: { marginTop: 6, fontSize: 13, color: '#669bbc' },
-  logoutButton: { backgroundColor: '#c1121f', paddingVertical: 7, paddingHorizontal: 14, borderRadius: 999 },
-  logoutButtonText: { color: '#fdf0d5', fontSize: 14, fontWeight: 'bold' },
+  title: { fontSize: 30, fontWeight: '800', color: '#1d2a36' },
+  subtitle: { marginTop: 6, fontSize: 13, color: '#7f8a94' },
+  logoutButton: { backgroundColor: '#7b2530', paddingVertical: 7, paddingHorizontal: 14, borderRadius: 999 },
+  logoutButtonText: { color: '#f7f7f4', fontSize: 14, fontWeight: 'bold' },
   
   // 大頭貼區塊樣式
   avatarCard: {
     alignItems: 'center',
     marginBottom: 16,
-    backgroundColor: '#fdf0d5',
+    backgroundColor: '#ffffff',
     borderRadius: 20,
     paddingVertical: 18,
     borderWidth: 1,
-    borderColor: '#669bbc',
-    shadowColor: '#003049',
+    borderColor: '#d3c7bb',
+    shadowColor: '#1d2a36',
     shadowOpacity: 0.08,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
     elevation: 3,
   },
-  largeAvatar: { width: 112, height: 112, borderRadius: 56, backgroundColor: '#fdf0d5', marginBottom: 12, borderWidth: 3, borderColor: '#669bbc' },
-  changeAvatarBtn: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: '#669bbc', backgroundColor: '#fdf0d5' },
-  changeAvatarText: { fontSize: 13, color: '#780000', fontWeight: '600' },
+  largeAvatar: { width: 112, height: 112, borderRadius: 56, backgroundColor: '#fbfbf8', marginBottom: 12, borderWidth: 3, borderColor: '#d3c7bb' },
+  changeAvatarBtn: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: '#d3c7bb', backgroundColor: '#fbfbf8' },
+  changeAvatarText: { fontSize: 13, color: '#7b2530', fontWeight: '600' },
 
   formCard: {
-    backgroundColor: '#fdf0d5',
+    backgroundColor: '#ffffff',
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#669bbc',
+    borderColor: '#d3c7bb',
   },
 
   inputGroup: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '700', color: '#003049', marginBottom: 7 },
-  input: { backgroundColor: '#fdf0d5', height: 50, borderRadius: 12, paddingHorizontal: 16, fontSize: 16, color: '#003049', borderWidth: 1, borderColor: '#669bbc' },
-  disabledInput: { backgroundColor: '#fdf0d5', color: '#669bbc', borderColor: '#669bbc' },
+  label: { fontSize: 13, fontWeight: '700', color: '#1d2a36', marginBottom: 7 },
+  input: { backgroundColor: '#fbfbf8', height: 50, borderRadius: 12, paddingHorizontal: 16, fontSize: 16, color: '#1d2a36', borderWidth: 1, borderColor: '#d3c7bb' },
+  disabledInput: { backgroundColor: '#fbfbf8', color: '#7f8a94', borderColor: '#d3c7bb' },
   
   // 👑 密碼專用眼睛包覆層與佈局
   passwordInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fdf0d5',
+    backgroundColor: '#fbfbf8',
     height: 50,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#669bbc',
+    borderColor: '#d3c7bb',
     paddingHorizontal: 16,
   },
   passwordInput: {
     flex: 1,
     height: '100%',
     fontSize: 16,
-    color: '#003049',
+    color: '#1d2a36',
   },
   eyeButton: {
     paddingLeft: 10,
@@ -347,22 +347,22 @@ const styles = StyleSheet.create({
 
   // 綠色儲存按鈕
   saveButton: {
-    backgroundColor: '#003049',
+    backgroundColor: '#1d2a36',
     height: 50,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
-    shadowColor: '#003049',
+    shadowColor: '#1d2a36',
     shadowOpacity: 0.22,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
-  saveButtonText: { color: '#fdf0d5', fontSize: 16, fontWeight: 'bold' },
+  saveButtonText: { color: '#f7f7f4', fontSize: 16, fontWeight: 'bold' },
 
-  errorText: { fontSize: 22, fontWeight: 'bold', color: '#780000', marginBottom: 10 },
+  errorText: { fontSize: 22, fontWeight: 'bold', color: '#7b2530', marginBottom: 10 },
   errorSubtitle: { fontSize: 14, color: '#666', marginBottom: 24, textAlign: 'center' },
-  registerButton: { backgroundColor: '#003049', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8 },
-  registerButtonText: { color: '#fdf0d5', fontSize: 16, fontWeight: 'bold' }
+  registerButton: { backgroundColor: '#1d2a36', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8 },
+  registerButtonText: { color: '#f7f7f4', fontSize: 16, fontWeight: 'bold' }
 });

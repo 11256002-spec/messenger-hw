@@ -1,7 +1,6 @@
 import { useAppStore } from '@/context/app-store';
-import React, { useCallback, useState } from 'react';
-// 👑 useFocusEffect：保證切換分頁、搜尋完或離開再進來時，都會自動清空輸入框與搜尋列表
 import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { supabaseFetch } from '../../supabaseConfig';
 
@@ -31,7 +30,6 @@ export default function ExploreScreen() {
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
   const { currentUserEmail } = useAppStore();
 
-  // 👑 換頁切換 Tab 進來時，自動重置並徹底清空搜尋狀態與結果
   useFocusEffect(
     useCallback(() => {
       setSearchQuery('');
@@ -48,10 +46,7 @@ export default function ExploreScreen() {
       const payload = JSON.parse(row.text) as FriendRequestPayload;
       if (payload.type !== 'friend_request') return null;
       if (!payload.from || !payload.to || !payload.status) return null;
-      return {
-        id: String(row.id),
-        ...payload,
-      };
+      return { id: String(row.id), ...payload };
     } catch {
       return null;
     }
@@ -66,9 +61,7 @@ export default function ExploreScreen() {
       const parsed = parseRequestRow(row);
       if (!parsed) continue;
       const key = `${parsed.from}->${parsed.to}`;
-      if (!latestByDirection.has(key)) {
-        latestByDirection.set(key, parsed);
-      }
+      if (!latestByDirection.has(key)) latestByDirection.set(key, parsed);
     }
 
     return Array.from(latestByDirection.values());
@@ -87,9 +80,8 @@ export default function ExploreScreen() {
     setOutgoingRequests(latestRequests.filter((req) => req.from === me && req.status === 'pending'));
   }
 
-  // 搜尋雲端使用者
   async function handleSearch() {
-    const query = searchQuery.trim(); 
+    const query = searchQuery.trim();
     if (!query) {
       if (Platform.OS === 'web') window.alert('提示：請輸入搜尋關鍵字！');
       else Alert.alert('提示', '請輸入搜尋關鍵字！');
@@ -98,35 +90,27 @@ export default function ExploreScreen() {
 
     setLoading(true);
     try {
-      // 👑 終極修正：將 `%` 與搜尋關鍵字透過 encodeURIComponent 進行網址安全編碼 (例如 % 變成 %25)
-      // 如此一來 Supabase 才能正確解析 or 裡面的模糊比對，不論大小寫都能成功撈出！
       const encodedEmailFilter = encodeURIComponent(`email.ilike.%${query}%`);
       const encodedNameFilter = encodeURIComponent(`name.ilike.%${query}%`);
-      
       let filter = `${encodedEmailFilter},${encodedNameFilter}`;
-      
-      // 如果輸入的是純數字（代表可能是 ID），額外加上 id 的等值查詢條件
-      if (!isNaN(Number(query))) {
-        filter += `,id.eq.${query}`;
-      }
-      
+
+      if (!isNaN(Number(query))) filter += `,id.eq.${query}`;
+
       const users = await supabaseFetch(`app_users?or=(${filter})`);
       if (users && Array.isArray(users)) {
-        // 過濾掉目前登入的自己（比對時轉小寫防呆）
         const filtered = users.filter((u: any) => u.email.toLowerCase() !== currentUserEmail?.toLowerCase());
         setSearchResults(filtered);
       } else {
         setSearchResults([]);
       }
     } catch (err) {
-      console.error("搜尋發生錯誤:", err);
+      console.error('搜尋發生錯誤:', err);
       setSearchResults([]);
     } finally {
       setLoading(false);
     }
   }
 
-  // 加好友功能 🚀
   async function handleAddFriend(friendEmail: string) {
     const me = (currentUserEmail ?? '').trim().toLowerCase();
     const friend = friendEmail.trim().toLowerCase();
@@ -154,10 +138,9 @@ export default function ExploreScreen() {
         return;
       }
 
-      // 使用 ilike 機制撈取資料庫內最正確的大小寫使用者資料
       const myUsers = await supabaseFetch(`app_users?email=ilike.${encodeURIComponent(me)}`);
       const friendUsers = await supabaseFetch(`app_users?email=ilike.${encodeURIComponent(friend)}`);
-      
+
       if (!myUsers || myUsers.length === 0 || !friendUsers || friendUsers.length === 0) {
         if (Platform.OS === 'web') window.alert('找不到該使用者資料，加好友失敗。');
         else Alert.alert('失敗', '找不到該使用者資料，加好友失敗。');
@@ -166,12 +149,8 @@ export default function ExploreScreen() {
 
       const myData = myUsers[0];
       const friendData = friendUsers[0];
-
-      // 取得現有的好友陣列
       const myFriends: string[] = myData.friends || [];
-      const friendFriends: string[] = friendData.friends || [];
 
-      // 檢查是否已經是好友（統一轉小寫比對防呆）
       const isAlreadyFriend = myFriends.some(email => email.toLowerCase() === friend.toLowerCase());
       if (isAlreadyFriend) {
         if (Platform.OS === 'web') window.alert('你們已經是好友囉！');
@@ -193,19 +172,14 @@ export default function ExploreScreen() {
         text: JSON.stringify(requestPayload),
       });
 
-      if (Platform.OS === 'web') {
-        window.alert(`已送出好友邀請給 ${friendData.name || friendData.email}！`);
-      } else {
-        Alert.alert('成功', `已送出好友邀請給 ${friendData.name || friendData.email}！`);
-      }
+      if (Platform.OS === 'web') window.alert(`已送出好友邀請給 ${friendData.name || friendData.email}！`);
+      else Alert.alert('成功', `已送出好友邀請給 ${friendData.name || friendData.email}！`);
 
-      // 👑 儲存成功後，立刻重置清空輸入框與搜尋結果，保持畫面乾淨
       setSearchQuery('');
       setSearchResults([]);
       await loadRequests();
-
     } catch (err) {
-      console.error("加好友失敗:", err);
+      console.error('加好友失敗:', err);
       if (Platform.OS === 'web') window.alert('網路連線失敗，請稍後再試。');
       else Alert.alert('錯誤', '網路連線失敗，請稍後再試。');
     } finally {
@@ -214,15 +188,8 @@ export default function ExploreScreen() {
   }
 
   async function updateRequestStatus(request: FriendRequestItem, status: Exclude<FriendRequestStatus, 'pending'>) {
-    const nextPayload: FriendRequestPayload = {
-      ...request,
-      status,
-      actedAt: new Date().toISOString(),
-    };
-
-    await supabaseFetch(`chat_messages?id=eq.${request.id}`, 'PATCH', {
-      text: JSON.stringify(nextPayload),
-    });
+    const nextPayload: FriendRequestPayload = { ...request, status, actedAt: new Date().toISOString() };
+    await supabaseFetch(`chat_messages?id=eq.${request.id}`, 'PATCH', { text: JSON.stringify(nextPayload) });
   }
 
   async function handleAcceptRequest(request: FriendRequestItem) {
@@ -286,13 +253,12 @@ export default function ExploreScreen() {
         <Text style={styles.subtitle}>目前登入：{currentUserEmail ?? '尚未登入'}</Text>
       </View>
 
-      {/* 搜尋組件 */}
       <View style={styles.searchCard}>
         <View style={styles.searchBox}>
           <TextInput
             style={styles.input}
             placeholder="輸入好友的 ID、姓名 或 Email..."
-            placeholderTextColor="#669bbc"
+            placeholderTextColor="#7f8a94"
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoCapitalize="none"
@@ -302,12 +268,11 @@ export default function ExploreScreen() {
             blurOnSubmit={false}
           />
           <Pressable style={styles.searchBtn} onPress={handleSearch} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>搜尋</Text>}
+            {loading ? <ActivityIndicator color="#f8f8f6" /> : <Text style={styles.btnText}>搜尋</Text>}
           </Pressable>
         </View>
       </View>
 
-      {/* 搜尋結果列表 */}
       <FlatList
         data={searchResults}
         contentContainerStyle={styles.resultListContent}
@@ -323,9 +288,7 @@ export default function ExploreScreen() {
             </Pressable>
           </View>
         )}
-        ListEmptyComponent={
-          searchQuery && !loading ? <Text style={styles.emptyText}>找不到相符的使用者</Text> : null
-        }
+        ListEmptyComponent={searchQuery && !loading ? <Text style={styles.emptyText}>找不到相符的使用者</Text> : null}
       />
 
       <View style={styles.sectionBox}>
@@ -337,16 +300,10 @@ export default function ExploreScreen() {
             <View style={styles.requestRow} key={request.id}>
               <Text style={styles.requestEmail}>{request.from}</Text>
               <View style={styles.requestActions}>
-                <Pressable
-                  style={[styles.actionBtn, styles.acceptBtn]}
-                  onPress={() => handleAcceptRequest(request)}
-                  disabled={processingRequestId === request.id}>
+                <Pressable style={[styles.actionBtn, styles.acceptBtn]} onPress={() => handleAcceptRequest(request)} disabled={processingRequestId === request.id}>
                   <Text style={styles.actionText}>同意</Text>
                 </Pressable>
-                <Pressable
-                  style={[styles.actionBtn, styles.rejectBtn]}
-                  onPress={() => handleRejectRequest(request)}
-                  disabled={processingRequestId === request.id}>
+                <Pressable style={[styles.actionBtn, styles.rejectBtn]} onPress={() => handleRejectRequest(request)} disabled={processingRequestId === request.id}>
                   <Text style={styles.actionText}>拒絕</Text>
                 </Pressable>
               </View>
@@ -371,82 +328,82 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fdf0d5', paddingTop: 60, paddingHorizontal: 16 },
+  container: { flex: 1, backgroundColor: '#f7f7f4', paddingTop: 60, paddingHorizontal: 16 },
   headerCard: {
-    backgroundColor: '#fdf0d5',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#669bbc',
+    borderColor: '#d3c7bb',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    shadowColor: '#003049',
-    shadowOpacity: 0.06,
+    shadowColor: '#1d2a36',
+    shadowOpacity: 0.08,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  title: { fontSize: 24, fontWeight: '900', color: '#003049' },
-  subtitle: { fontSize: 14, color: '#669bbc', marginTop: 4 },
+  title: { fontSize: 24, fontWeight: '900', color: '#1d2a36' },
+  subtitle: { fontSize: 14, color: '#7f8a94', marginTop: 4 },
   searchCard: {
     marginTop: 12,
     marginBottom: 10,
-    backgroundColor: '#fdf0d5',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#669bbc',
+    borderColor: '#d3c7bb',
     padding: 12,
   },
   searchBox: { flexDirection: 'row' },
   input: {
     flex: 1,
     height: 46,
-    backgroundColor: '#fdf0d5',
+    backgroundColor: '#fbfbf8',
     borderWidth: 1,
-    borderColor: '#669bbc',
+    borderColor: '#d3c7bb',
     borderRadius: 10,
     paddingHorizontal: 14,
     fontSize: 15,
     marginRight: 8,
-    color: '#003049',
+    color: '#1d2a36',
   },
-  searchBtn: { backgroundColor: '#003049', height: 46, width: 80, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  btnText: { color: '#fdf0d5', fontSize: 15, fontWeight: 'bold' },
+  searchBtn: { backgroundColor: '#1d2a36', height: 46, width: 80, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  btnText: { color: '#f7f7f4', fontSize: 15, fontWeight: 'bold' },
   resultListContent: { paddingBottom: 8 },
   userCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fdf0d5',
+    backgroundColor: '#ffffff',
     padding: 14,
     borderRadius: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#669bbc',
+    borderColor: '#d3c7bb',
   },
-  userName: { fontSize: 16, fontWeight: 'bold', color: '#003049' },
-  userEmail: { fontSize: 13, color: '#669bbc', marginTop: 2 },
-  addBtn: { backgroundColor: '#669bbc', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8 },
-  addBtnText: { color: '#fdf0d5', fontSize: 13, fontWeight: '600' },
-  emptyText: { textAlign: 'center', color: '#669bbc', marginTop: 30, fontSize: 15 },
-  sectionBox: { marginTop: 8, marginBottom: 16, backgroundColor: '#fdf0d5', borderRadius: 14, borderWidth: 1, borderColor: '#669bbc', padding: 14 },
-  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#003049', marginBottom: 10 },
-  emptySmallText: { color: '#669bbc', fontSize: 13 },
+  userName: { fontSize: 16, fontWeight: 'bold', color: '#1d2a36' },
+  userEmail: { fontSize: 13, color: '#7f8a94', marginTop: 2 },
+  addBtn: { backgroundColor: '#7b2530', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8 },
+  addBtnText: { color: '#f7f7f4', fontSize: 13, fontWeight: '600' },
+  emptyText: { textAlign: 'center', color: '#7f8a94', marginTop: 30, fontSize: 15 },
+  sectionBox: { marginTop: 8, marginBottom: 16, backgroundColor: '#ffffff', borderRadius: 14, borderWidth: 1, borderColor: '#d3c7bb', padding: 14 },
+  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#1d2a36', marginBottom: 10 },
+  emptySmallText: { color: '#7f8a94', fontSize: 13 },
   requestRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#669bbc',
+    borderColor: '#d3c7bb',
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 10,
     marginBottom: 8,
   },
-  requestEmail: { flex: 1, marginRight: 10, color: '#003049', fontSize: 13 },
+  requestEmail: { flex: 1, marginRight: 10, color: '#1d2a36', fontSize: 13 },
   requestActions: { flexDirection: 'row' },
   actionBtn: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, marginLeft: 8 },
-  acceptBtn: { backgroundColor: '#003049' },
-  rejectBtn: { backgroundColor: '#c1121f' },
-  actionText: { color: '#fdf0d5', fontSize: 12, fontWeight: '700' },
-  pendingText: { color: '#780000', fontSize: 12, fontWeight: '700' },
+  acceptBtn: { backgroundColor: '#1d2a36' },
+  rejectBtn: { backgroundColor: '#7b2530' },
+  actionText: { color: '#f7f7f4', fontSize: 12, fontWeight: '700' },
+  pendingText: { color: '#7f8a94', fontSize: 12, fontWeight: '700' },
 });

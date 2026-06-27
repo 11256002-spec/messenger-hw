@@ -17,8 +17,8 @@ export default function TabLayout() {
 
   // 👑 只有在「已登入」的狀態下，才會載入並顯示底部的 Tab 導覽列
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fdf0d5' }}>
-      <Tabs screenOptions={{ tabBarActiveTintColor: '#003049', tabBarInactiveTintColor: '#669bbc', tabBarStyle: { backgroundColor: '#fdf0d5', borderTopColor: '#669bbc' }, headerShown: false }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f7f7f4' }}>
+      <Tabs screenOptions={{ tabBarActiveTintColor: '#1d2a36', tabBarInactiveTintColor: '#7f8a94', tabBarStyle: { backgroundColor: '#ffffff', borderTopColor: '#d3c7bb' }, headerShown: false }}>
         {/* Tab 1: 聊天室列表 */}
         <Tabs.Screen
           name="index"

@@ -5,10 +5,10 @@
       "username": "devtest",
       "password": "$2a$08$e9iRTuarmtfS8VclnPnDn.xk6Mq1ipvTZl410Ir/yvU.lJh6h4rzy",
       "avatarUri": "https://i.pravatar.cc/150?u=devtest",
-      "friendIds": [],
-      "incomingFriendRequestIds": [
+      "friendIds": [
         "f9544b58-2e7f-4c17-893f-360bc07e786f"
       ],
+      "incomingFriendRequestIds": [],
       "outgoingFriendRequestIds": [],
       "createdAt": "2026-06-09T05:58:05.430Z"
     },
@@ -18,12 +18,11 @@
       "password": "$2a$08$wf2L6q0tZzpFxkacyaG2FelTwvdZRnYkHKghOf/drzN2HPH2zmIhy",
       "avatarUri": "https://i.pravatar.cc/150?u=user",
       "friendIds": [
-        "4074be0b-2f7a-452b-87a9-ecf5355a3e50"
-      ],
-      "incomingFriendRequestIds": [],
-      "outgoingFriendRequestIds": [
+        "4074be0b-2f7a-452b-87a9-ecf5355a3e50",
         "76a17fbd-f415-429c-bb31-cd50e3291f21"
       ],
+      "incomingFriendRequestIds": [],
+      "outgoingFriendRequestIds": [],
       "createdAt": "2026-06-09T05:58:28.667Z"
     },
     {
@@ -37,6 +36,16 @@
       "incomingFriendRequestIds": [],
       "outgoingFriendRequestIds": [],
       "createdAt": "2026-06-09T05:59:55.636Z"
+    },
+    {
+      "id": "71a4c5b8-ed5d-473f-9298-486db104b37c",
+      "username": "testuser",
+      "password": "$2a$08$Zc3AJPaGCeoJQ9idXiPfTuSX.rvMrzEnVsKdxOWvJx.QgRj3kApMm",
+      "avatarUri": "https://i.pravatar.cc/150?u=testuser",
+      "friendIds": [],
+      "incomingFriendRequestIds": [],
+      "outgoingFriendRequestIds": [],
+      "createdAt": "2026-06-09T17:06:50.438Z"
     }
   ],
   "conversations": [
@@ -60,6 +69,14 @@
           "createdAt": "2026-06-09T06:00:37.933Z"
         }
       ]
+    },
+    {
+      "id": "f82cb6bb-0a95-4d51-bda3-f4a5d28bffad",
+      "participantIds": [
+        "76a17fbd-f415-429c-bb31-cd50e3291f21",
+        "f9544b58-2e7f-4c17-893f-360bc07e786f"
+      ],
+      "messages": []
     }
   ]
 }

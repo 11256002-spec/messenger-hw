@@ -1,3 +1,4 @@
+import { useAppStore } from '@/context/app-store';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
@@ -5,36 +6,46 @@ import { supabaseFetch } from '../../supabaseConfig';
 
 export default function ChatScreen() {
   const router = useRouter();
-  const { friendEmail, myEmail } = useLocalSearchParams() as any;
+  const { friendEmail, myEmail: myEmailParam } = useLocalSearchParams() as any;
+  const { currentUserEmail } = useAppStore();
+  const myEmail = typeof (currentUserEmail ?? myEmailParam) === 'string' ? (currentUserEmail ?? myEmailParam) : '';
+  const normalizedFriendEmail = typeof friendEmail === 'string' ? friendEmail : '';
   
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [friendInfo, setFriendInfo] = useState({ name: '', avatar: '' });
   const flatListRef = useRef<FlatList>(null);
+  const textInputRef = useRef<TextInput>(null);
 
-  const chatId = myEmail < friendEmail ? `${myEmail}_${friendEmail}` : `${friendEmail}_${myEmail}`;
-  const isMemoMode = myEmail === friendEmail; 
+  const chatId = myEmail && normalizedFriendEmail
+    ? (myEmail < normalizedFriendEmail ? `${myEmail}_${normalizedFriendEmail}` : `${normalizedFriendEmail}_${myEmail}`)
+    : '';
+  const isMemoMode = myEmail === normalizedFriendEmail;
 
   useEffect(() => {
     async function fetchFriendInfo() {
-      if (!friendEmail) return;
+      if (!normalizedFriendEmail) return;
       if (isMemoMode) {
         setFriendInfo({ name: 'Keep Memo', avatar: '' });
         return;
       }
-      const data = await supabaseFetch(`app_users?email=eq.${friendEmail}`, 'GET');
+      const data = await supabaseFetch(`app_users?email=eq.${normalizedFriendEmail}`, 'GET');
       if (data && data.length > 0) {
         setFriendInfo({
-          name: data[0].name || friendEmail.split('@')[0],
+          name: data[0].name || normalizedFriendEmail.split('@')[0],
           avatar: data[0].avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
         });
       }
     }
     fetchFriendInfo();
-  }, [friendEmail, isMemoMode]);
+  }, [normalizedFriendEmail, isMemoMode]);
 
   useEffect(() => {
     async function fetchChatMessages() {
+      if (!chatId) {
+        setMessages([]);
+        return;
+      }
       try {
         const data = await supabaseFetch(`chat_messages?chat_id=eq.${chatId}&order=created_at.asc`);
         if (data && Array.isArray(data)) {
@@ -49,6 +60,12 @@ export default function ChatScreen() {
     const interval = setInterval(fetchChatMessages, 1500);
     return () => clearInterval(interval);
   }, [chatId]);
+
+  useEffect(() => {
+    if (!myEmail) return;
+    const timer = setTimeout(() => textInputRef.current?.focus(), 120);
+    return () => clearTimeout(timer);
+  }, [myEmail, normalizedFriendEmail]);
 
   async function handleSendMessage() {
     if (!inputText.trim()) return;
@@ -67,63 +84,77 @@ export default function ChatScreen() {
         setMessages(data);
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       }
+      textInputRef.current?.focus();
     } catch (err) {
       console.error("發送訊息失敗", err);
     }
   }
 
-  return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0} >
+  const content = (
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0} >
+      {!myEmail ? (
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}><Text style={styles.backText}>ㄑ 聊天</Text></Pressable>
-          <Text style={styles.headerTitle} numberOfLines={1}>{friendInfo.name}</Text>
+          <Pressable onPress={() => router.replace('/(tabs)')} style={styles.backBtn}><Text style={styles.backText}>返回</Text></Pressable>
+          <Text style={styles.headerTitle}>請先登入</Text>
           <View style={{ width: 60 }} />
         </View>
+      ) : (
+        <>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn}><Text style={styles.backText}>ㄑ 聊天</Text></Pressable>
+        <Text style={styles.headerTitle} numberOfLines={1}>{friendInfo.name}</Text>
+        <View style={{ width: 60 }} />
+      </View>
 
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item: any) => item.id?.toString()}
-          contentContainerStyle={{ paddingHorizontal: 14, paddingVertical: 16, paddingBottom: 30 }}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          renderItem={({ item }) => {
-            const isMe = item.sender_email === myEmail;
-            const date = new Date(item.created_at);
-            const timeString = isNaN(date.getTime()) ? "" : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-            
-            return (
-              <View style={[styles.msgRow, isMe ? styles.myRow : styles.friendRow]}>
-                {!isMe && (isMemoMode ? (
-                  <View style={[styles.msgAvatar, styles.memoAvatarInner]}><Text style={styles.memoAvatarTextInner}>Keep</Text></View>
-                ) : (
-                  <Image source={{ uri: friendInfo.avatar }} style={styles.msgAvatar} />
-                ))}
-                <View style={[styles.msgContentWrapper, isMe ? { flexDirection: 'row-reverse' } : { flexDirection: 'row' }]}>
-                  <View style={[styles.bubble, isMe ? styles.myBubble : styles.friendBubble]}><Text style={[styles.bubbleText, isMe ? styles.myText : styles.friendText]}>{item.text}</Text></View>
-                  <View style={styles.timeWrapper}><Text style={styles.timeText}>{timeString}</Text></View>
-                </View>
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        keyExtractor={(item: any) => item.id?.toString()}
+        contentContainerStyle={{ paddingHorizontal: 14, paddingVertical: 16, paddingBottom: 30 }}
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        renderItem={({ item }) => {
+          const isMe = item.sender_email === myEmail;
+          const date = new Date(item.created_at);
+          const timeString = isNaN(date.getTime()) ? "" : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+          
+          return (
+            <View style={[styles.msgRow, isMe ? styles.myRow : styles.friendRow]}>
+              {!isMe && (isMemoMode ? (
+                <View style={[styles.msgAvatar, styles.memoAvatarInner]}><Text style={styles.memoAvatarTextInner}>Keep</Text></View>
+              ) : (
+                <Image source={{ uri: friendInfo.avatar }} style={styles.msgAvatar} />
+              ))}
+              <View style={[styles.msgContentWrapper, isMe ? { flexDirection: 'row-reverse' } : { flexDirection: 'row' }]}>
+                <View style={[styles.bubble, isMe ? styles.myBubble : styles.friendBubble]}><Text style={[styles.bubbleText, isMe ? styles.myText : styles.friendText]}>{item.text}</Text></View>
+                <View style={styles.timeWrapper}><Text style={styles.timeText}>{timeString}</Text></View>
               </View>
-            );
-          }}
-        />
+            </View>
+          );
+        }}
+      />
 
-        <View style={styles.inputBar}>
-          <TextInput
-            style={styles.textInput}
-            placeholder="輸入訊息..."
-            placeholderTextColor="#a1a1a1"
-            value={inputText}
-            onChangeText={setInputText}
-            // 👑 核心優化：綁定鍵盤 Enter 送出事件，讓實體鍵盤直接能打字傳送！
-            onSubmitEditing={handleSendMessage} 
-            returnKeyType="send"
-            enablesReturnKeyAutomatically={true}
-          />
-          <Pressable style={styles.sendBtn} onPress={handleSendMessage}><Text style={styles.sendBtnText}>傳送</Text></Pressable>
-        </View>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+      <View style={styles.inputBar}>
+        <TextInput
+          ref={textInputRef}
+          style={styles.textInput}
+          placeholder="輸入訊息..."
+          placeholderTextColor="#a1a1a1"
+          value={inputText}
+          onChangeText={setInputText}
+          onSubmitEditing={handleSendMessage} 
+          returnKeyType="send"
+          enablesReturnKeyAutomatically={true}
+          autoFocus={Platform.OS === 'web'}
+        />
+        <Pressable style={styles.sendBtn} onPress={handleSendMessage}><Text style={styles.sendBtnText}>傳送</Text></Pressable>
+      </View>
+        </>
+      )}
+    </KeyboardAvoidingView>
+  );
+
+  return (
+    Platform.OS === 'web' ? content : <TouchableWithoutFeedback onPress={Keyboard.dismiss}>{content}</TouchableWithoutFeedback>
   );
 }
 

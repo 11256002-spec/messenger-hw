@@ -1,3 +1,4 @@
+import { useAppStore } from '@/context/app-store';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -5,10 +6,9 @@ import { supabaseFetch } from '../../supabaseConfig';
 
 export default function MessengerHomeScreen() {
   const router = useRouter();
+  const { currentUserEmail, login, register, logout } = useAppStore();
+  const myEmail = currentUserEmail ?? '';
   
-  // 登入狀態管理
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [myEmail, setMyEmail] = useState<string>("");
   const [chats, setChats] = useState<any[]>([]);
 
   // 登入/註冊表單輸入欄位
@@ -16,6 +16,7 @@ export default function MessengerHomeScreen() {
   const [inputEmail, setInputEmail] = useState<string>("");
   const [inputPassword, setInputPassword] = useState<string>("");
   const [inputName, setInputName] = useState<string>("");
+  const [authMessage, setAuthMessage] = useState<string>('');
 
   // 👑 細節優化：搜尋與過濾狀態
   const [searchText, setSearchText] = useState<string>("");
@@ -118,92 +119,49 @@ export default function MessengerHomeScreen() {
   };
 
   useEffect(() => {
-    if (isLoggedIn && myEmail) {
+    if (currentUserEmail && myEmail) {
       fetchChatList();
       const interval = setInterval(fetchChatList, 3000);
       return () => clearInterval(interval);
     } else {
       setChats([]);
     }
-  }, [isLoggedIn, myEmail]);
+  }, [currentUserEmail, myEmail]);
 
   // 登入與註冊邏輯維持不變
   const handleLogin = async () => {
-    if (!inputEmail || !inputPassword) {
-      Alert.alert("提示", "請輸入 Email 與密碼");
-      return;
-    }
-    const users = await supabaseFetch(`app_users?email=eq.${inputEmail.trim().toLowerCase()}`, 'GET');
-    if (users && users.length > 0) {
-      const user = users[0];
-      if (user.password === inputPassword.trim()) {
-        setMyEmail(user.email);
-        setIsLoggedIn(true);
-        setInputEmail("");
-        setInputPassword("");
-      } else {
-        Alert.alert("錯誤", "密碼不正確");
-      }
-    } else {
-      Alert.alert("錯誤", "找不到該帳號，請先註冊");
+    try {
+      await login({ username: inputEmail, password: inputPassword });
+      setInputEmail('');
+      setInputPassword('');
+      setAuthMessage('登入成功。');
+    } catch (error) {
+      setAuthMessage(error instanceof Error ? error.message : '登入失敗，請稍後再試。');
     }
   };
 
   const handleRegister = async () => {
-    const formattedEmail = inputEmail.trim().toLowerCase();
-    const formattedPassword = inputPassword.trim();
-    if (!formattedEmail || !inputPassword || !inputName) {
-      Alert.alert("提示", "請填寫所有欄位");
+    if (!inputEmail.trim() || !inputPassword.trim() || !inputName.trim()) {
+      setAuthMessage('請填寫所有欄位。');
       return;
     }
-    if (!formattedEmail.includes('@')) {
-      Alert.alert("格式錯誤", "請輸入正確的電子郵件格式！\n例如：kting002@gmail.com");
-      return;
-    }
-    if (formattedPassword.length < 6) {
-      Alert.alert("密碼安全度不足", "密碼長度必須「至少 6 位數」以上！");
-      return;
-    }
-    const hasLetter = /[a-zA-Z]/.test(formattedPassword);
-    const hasNumber = /[0-9]/.test(formattedPassword);
-    if (!hasLetter || !hasNumber) {
-      Alert.alert("密碼格式錯誤", "密碼必須是「英文與數字的組合」！");
-      return;
-    }
-    if (inputPassword.includes(" ")) {
-      Alert.alert("密碼格式錯誤", "密碼內不能包含空白字元！");
-      return;
-    }
-
     try {
-      const existing = await supabaseFetch(`app_users?email=eq.${formattedEmail}`, 'GET');
-      if (existing && existing.length > 0) {
-        Alert.alert("錯誤", "該 Email 已經被註冊過");
-        return;
-      }
-      const newUser = {
-        email: formattedEmail,
-        password: formattedPassword, 
-        name: inputName.trim(),
-        friends: [],
-        avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(formattedEmail)}`
-      };
-      const res = await supabaseFetch('app_users', 'POST', newUser);
-      if (res) {
-        Alert.alert("成功", "註冊成功！已自動登入");
-        setMyEmail(newUser.email);
-        setIsLoggedIn(true);
-        setInputEmail("");
-        setInputPassword("");
-        setInputName("");
-      }
+      await register({ username: inputEmail, password: inputPassword, name: inputName });
+      setAuthMessage('註冊成功！已自動登入。');
+      setInputEmail('');
+      setInputPassword('');
+      setInputName('');
     } catch (err) {
-      console.error(err);
+      setAuthMessage(err instanceof Error ? err.message : '註冊失敗，請稍後再試。');
     }
   };
 
   const handleAddFriend = async () => {
     const targetEmail = searchText.trim().toLowerCase();
+    if (!myEmail) {
+      Alert.alert('提示', '請先登入。');
+      return;
+    }
     if (!targetEmail) return;
     if (targetEmail === myEmail.toLowerCase()) {
       Alert.alert("提示", "不能加自己為好友喔！如果要記事情可以用 Keep Memo");
@@ -242,7 +200,7 @@ export default function MessengerHomeScreen() {
   const handlePressChat = (friendEmail: string) => {
     router.push({
       pathname: '/chat',
-      params: { myEmail: myEmail, friendEmail: friendEmail }
+      params: { friendEmail: friendEmail }
     });
   };
 
@@ -256,15 +214,23 @@ export default function MessengerHomeScreen() {
     );
   });
 
-  if (!isLoggedIn) {
+  if (!currentUserEmail) {
     return (
       <View style={styles.authContainer}>
         <Text style={styles.authTitle}>{isRegisterMode ? "建立 M-Chat 帳號" : "M-Chat"}</Text>
         {isRegisterMode && <TextInput style={styles.authInput} placeholder="顯示名稱" value={inputName} onChangeText={setInputName} />}
         <TextInput style={styles.authInput} placeholder="電子郵件帳號 (Email)" autoCapitalize="none" keyboardType="email-address" value={inputEmail} onChangeText={setInputEmail} />
         <TextInput style={styles.authInput} placeholder="密碼 (最少6位英文+數字組合)" secureTextEntry value={inputPassword} onChangeText={setInputPassword} />
+        {!!authMessage && <Text style={styles.authMessage}>{authMessage}</Text>}
         <Pressable style={styles.authButton} onPress={isRegisterMode ? handleRegister : handleLogin}><Text style={styles.authButtonText}>{isRegisterMode ? "註冊" : "登入"}</Text></Pressable>
-        <Pressable onPress={() => setIsRegisterMode(!isRegisterMode)} style={{ marginTop: 25 }}><Text style={{ color: '#06C755', fontSize: 15, fontWeight: '600' }}>{isRegisterMode ? "切換至登入" : "建立新帳號"}</Text></Pressable>
+        <Pressable
+          onPress={() => {
+            setIsRegisterMode(!isRegisterMode);
+            setAuthMessage('');
+          }}
+          style={{ marginTop: 25 }}>
+          <Text style={{ color: '#06C755', fontSize: 15, fontWeight: '600' }}>{isRegisterMode ? "切換至登入" : "建立新帳號"}</Text>
+        </Pressable>
       </View>
     );
   }
@@ -273,7 +239,7 @@ export default function MessengerHomeScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>聊天</Text>
-        <Pressable style={styles.logoutButton} onPress={() => { setIsLoggedIn(false); setMyEmail(""); }}><Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>登出</Text></Pressable>
+        <Pressable style={styles.logoutButton} onPress={logout}><Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>登出</Text></Pressable>
       </View>
 
       <View style={styles.searchBar}>
@@ -341,6 +307,7 @@ const styles = StyleSheet.create({
   authContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', padding: 30 },
   authTitle: { fontSize: 36, fontWeight: 'bold', marginBottom: 40, color: '#06C755', letterSpacing: 1 },
   authInput: { width: '100%', height: 48, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#ccc', paddingHorizontal: 5, fontSize: 16, marginBottom: 20, color: '#000' },
+  authMessage: { width: '100%', color: '#dc2626', fontSize: 14, marginBottom: 8 },
   authButton: { width: '100%', height: 48, backgroundColor: '#06C755', borderRadius: 5, justifyContent: 'center', alignItems: 'center', marginTop: 15 },
   authButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });

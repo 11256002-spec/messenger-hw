@@ -147,6 +147,10 @@ export default function SettingScreen() {
     }
   };
 
+  const handleProfileSubmit = () => {
+    void handleUpdateProfile();
+  };
+
   // 登出流程
   const handleLogout = () => {
     const doLogoutProcess = async () => {
@@ -220,6 +224,7 @@ export default function SettingScreen() {
           placeholderTextColor="#a1a1a1"
           value={name}
           onChangeText={setName}
+          returnKeyType="next"
         />
       </View>
 
@@ -234,6 +239,9 @@ export default function SettingScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={isPasswordSecure} // 👑 true為暗碼，false為明碼
+            onSubmitEditing={handleProfileSubmit}
+            returnKeyType="done"
+            blurOnSubmit={false}
           />
           <Pressable 
             style={styles.eyeButton} 

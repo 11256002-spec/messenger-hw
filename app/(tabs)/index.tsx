@@ -29,6 +29,27 @@ export default function MessengerHomeScreen() {
   );
 
   // 取得聊天列表與好友資料
+  const buildChatIdCandidates = (firstEmail: string, secondEmail: string) => {
+    const first = (firstEmail ?? '').trim();
+    const second = (secondEmail ?? '').trim();
+    const lowerFirst = first.toLowerCase();
+    const lowerSecond = second.toLowerCase();
+    const ids = new Set<string>();
+
+    if (lowerFirst && lowerSecond) {
+      ids.add([lowerFirst, lowerSecond].sort().join('_'));
+      ids.add(`${lowerFirst}_${lowerSecond}`);
+      ids.add(`${lowerSecond}_${lowerFirst}`);
+    }
+    if (first && second) {
+      ids.add([first, second].sort().join('_'));
+      ids.add(`${first}_${second}`);
+      ids.add(`${second}_${first}`);
+    }
+
+    return Array.from(ids).filter(Boolean);
+  };
+
   const fetchChatList = async () => {
     if (!myEmail) return;
     
@@ -41,8 +62,9 @@ export default function MessengerHomeScreen() {
       let resolvedChats: any[] = [];
 
       // 1. Keep Memo (備忘錄)
-      const memoChatId = `${myEmail}_${myEmail}`;
-      const memoMsgData = await supabaseFetch(`chat_messages?chat_id=eq.${memoChatId}&order=created_at.desc&limit=1`, 'GET');
+      const memoChatIds = buildChatIdCandidates(myEmail, myEmail);
+      const memoOrFilter = memoChatIds.map((id) => `chat_id.eq.${id}`).join(',');
+      const memoMsgData = await supabaseFetch(`chat_messages?or=(${memoOrFilter})&order=created_at.desc&limit=1`, 'GET');
       let memoLastMessage = "傳送訊息給自己吧！";
       let memoLastTime = "";
       
@@ -72,8 +94,9 @@ export default function MessengerHomeScreen() {
         
         if (friendsData) {
           const friendListPromises = friendsData.map(async (friend: any) => {
-            const chatId = [myEmail, friend.email].sort().join('_');
-            const msgData = await supabaseFetch(`chat_messages?chat_id=eq.${chatId}&order=created_at.desc&limit=1`, 'GET');
+            const chatIds = buildChatIdCandidates(myEmail, friend.email);
+            const orFilter = chatIds.map((id) => `chat_id.eq.${id}`).join(',');
+            const msgData = await supabaseFetch(`chat_messages?or=(${orFilter})&order=created_at.desc&limit=1`, 'GET');
             
             let lastMessage = "暫無訊息，開始聊天吧！";
             let lastTime = "";
@@ -143,7 +166,7 @@ export default function MessengerHomeScreen() {
       return;
     }
     try {
-      await register({ name: inputName.trim(), email: inputEmail.trim().toLowerCase(), password: inputPassword });
+      await register({ name: inputName.trim(), username: inputEmail.trim().toLowerCase(), password: inputPassword });
       setIsRegisterMode(false);
       setInputEmail('');
       setInputPassword('');
@@ -152,6 +175,14 @@ export default function MessengerHomeScreen() {
     } catch (error) {
       setAuthMessage(error instanceof Error ? error.message : '註冊失敗，該 Email 可能已被註冊。');
     }
+  };
+
+  const handleAuthSubmit = () => {
+    if (isRegisterMode) {
+      void handleRegister();
+      return;
+    }
+    void handleLogin();
   };
 
   // 依據搜尋框關鍵字進行動態過濾
@@ -168,9 +199,34 @@ export default function MessengerHomeScreen() {
     return (
       <View style={styles.authContainer}>
         <Text style={styles.authTitle}>{isRegisterMode ? "建立 M-Chat 帳號" : "M-Chat"}</Text>
-        {isRegisterMode && <TextInput style={styles.authInput} placeholder="顯示名稱" value={inputName} onChangeText={setInputName} />}
-        <TextInput style={styles.authInput} placeholder="電子郵件帳號 (Email)" autoCapitalize="none" keyboardType="email-address" value={inputEmail} onChangeText={setInputEmail} />
-        <TextInput style={styles.authInput} placeholder="密碼 (最少6位)" secureTextEntry value={inputPassword} onChangeText={setInputPassword} />
+        {isRegisterMode && (
+          <TextInput
+            style={styles.authInput}
+            placeholder="顯示名稱"
+            value={inputName}
+            onChangeText={setInputName}
+            returnKeyType="next"
+          />
+        )}
+        <TextInput
+          style={styles.authInput}
+          placeholder="電子郵件帳號 (Email)"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={inputEmail}
+          onChangeText={setInputEmail}
+          returnKeyType="next"
+        />
+        <TextInput
+          style={styles.authInput}
+          placeholder="密碼 (最少6位)"
+          secureTextEntry
+          value={inputPassword}
+          onChangeText={setInputPassword}
+          onSubmitEditing={handleAuthSubmit}
+          returnKeyType={isRegisterMode ? 'done' : 'send'}
+          blurOnSubmit={false}
+        />
         {!!authMessage && <Text style={styles.authMessage}>{authMessage}</Text>}
         <Pressable style={styles.authButton} onPress={isRegisterMode ? handleRegister : handleLogin}><Text style={styles.authButtonText}>{isRegisterMode ? "註冊" : "登入"}</Text></Pressable>
         <Pressable onPress={() => { setIsRegisterMode(!isRegisterMode); setAuthMessage(''); }} style={{ marginTop: 25 }}>

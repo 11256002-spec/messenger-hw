@@ -1,13 +1,25 @@
+import { useAppStore } from '@/context/app-store';
 import { FontAwesome } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
+// 👑 引入首頁，用來在未登入時直接當作全螢幕畫面渲染
+import MessengerHomeScreen from './index';
 
 export default function TabLayout() {
+  const { currentUserEmail } = useAppStore();
+
+  // 👑 核心安全防護機制：如果檢測到使用者「尚未登入」，直接渲染首頁的登入/註冊表單
+  // 這樣一來，畫面就不會被包裹在 <Tabs> 內，底部的導覽列（LAYOUT）就會完全消失！
+  if (!currentUserEmail) {
+    return <MessengerHomeScreen />;
+  }
+
+  // 👑 只有在「已登入」的狀態下，才會載入並顯示底部的 Tab 導覽列
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      <Tabs screenOptions={{ tabBarActiveTintColor: '#0084FF', headerShown: false }}>
-        {/* Tab 1: 聊天室列表 (原本的 index) */}
+      <Tabs screenOptions={{ tabBarActiveTintColor: '#06C755', headerShown: false }}>
+        {/* Tab 1: 聊天室列表 */}
         <Tabs.Screen
           name="index"
           options={{
@@ -15,19 +27,27 @@ export default function TabLayout() {
             tabBarIcon: ({ color }) => <FontAwesome size={24} name="comments" color={color} />,
           }}
         />
-        {/* Tab 2: 帳號設定與好友 (原本的 explore) */}
+        {/* Tab 2: 增添好友 */}
         <Tabs.Screen
           name="explore" 
           options={{
-            title: '帳號與好友',
-            tabBarIcon: ({ color }) => <FontAwesome size={24} name="user" color={color} />,
+            title: '增添好友',
+            tabBarIcon: ({ color }) => <FontAwesome size={24} name="user-plus" color={color} />,
           }}
         />
-        {/* 獨立聊天室頁面 (隱藏 Tab，點擊列表後才跳轉) */}
+        {/* Tab 3: 帳號設定 */}
+        <Tabs.Screen
+          name="setting" 
+          options={{
+            title: '帳號設定',
+            tabBarIcon: ({ color }) => <FontAwesome size={24} name="gear" color={color} />,
+          }}
+        />
+        {/* 獨立聊天室頁面 (在 Tab 導覽列中隱藏) */}
         <Tabs.Screen
           name="chat"
           options={{
-            href: null, // 隱藏底部標籤
+            href: null, 
           }}
         />
       </Tabs>

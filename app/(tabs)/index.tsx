@@ -248,7 +248,7 @@ export default function MessengerHomeScreen() {
             <TextInput
               style={styles.authInput}
               placeholder="顯示名稱"
-              placeholderTextColor="#669bbc"
+              placeholderTextColor="#7f8a94"
               value={inputName}
               onChangeText={setInputName}
               returnKeyType="next"
@@ -257,7 +257,7 @@ export default function MessengerHomeScreen() {
           <TextInput
             style={styles.authInput}
             placeholder="電子郵件帳號 (Email)"
-            placeholderTextColor="#669bbc"
+            placeholderTextColor="#7f8a94"
             autoCapitalize="none"
             keyboardType="email-address"
             value={inputEmail}
@@ -267,7 +267,7 @@ export default function MessengerHomeScreen() {
           <TextInput
             style={styles.authInput}
             placeholder="密碼 (最少6位)"
-            placeholderTextColor="#669bbc"
+            placeholderTextColor="#7f8a94"
             secureTextEntry
             value={inputPassword}
             onChangeText={setInputPassword}
@@ -299,7 +299,7 @@ export default function MessengerHomeScreen() {
         <TextInput 
           style={styles.searchInput} 
           placeholder="搜尋好友名稱或 Email..." 
-          placeholderTextColor="#669bbc"
+          placeholderTextColor="#7f8a94"
           value={searchText}
           onChangeText={setSearchText}
         />
@@ -337,7 +337,7 @@ export default function MessengerHomeScreen() {
 
             <View style={styles.chatInfo}>
               <View style={styles.chatHeaderRow}>
-                <Text style={[styles.profileName, item.isMemo && { color: '#780000' }]}>{item.name}</Text>
+                <Text style={[styles.profileName, item.isMemo && { color: '#7b2530' }]}>{item.name}</Text>
                 <Text style={styles.timeText}>{item.time}</Text>
               </View>
               <Text style={styles.lastMessageText} numberOfLines={1}>{item.lastMessage}</Text>
@@ -350,20 +350,20 @@ export default function MessengerHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fdf0d5' },
+  container: { flex: 1, backgroundColor: '#f7f7f4' },
   // 👑 調整 Header 的結構樣式，使其保持簡潔並將標題維持在好看的位置
-  header: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#003049', flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fdf0d5' },
+  header: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#1d2a36', flexDirection: 'row', alignItems: 'center' },
+  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#f7f7f4' },
   searchBar: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
   searchInput: {
-    backgroundColor: '#fdf0d5',
+    backgroundColor: '#ffffff',
     height: 44,
     borderRadius: 12,
     paddingHorizontal: 14,
     fontSize: 14,
-    color: '#003049',
+    color: '#1d2a36',
     borderWidth: 1,
-    borderColor: '#669bbc',
+    borderColor: '#d3c7bb',
   },
   chatListContent: { paddingHorizontal: 12, paddingBottom: 20 },
   chatItem: {
@@ -374,56 +374,56 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#669bbc',
-    backgroundColor: '#fdf0d5',
-    shadowColor: '#003049',
-    shadowOpacity: 0.06,
+    borderColor: '#d3c7bb',
+    backgroundColor: '#ffffff',
+    shadowColor: '#1d2a36',
+    shadowOpacity: 0.08,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
   avatar: { width: 52, height: 52, borderRadius: 26, marginRight: 14 },
-  memoAvatar: { backgroundColor: '#780000', justifyContent: 'center', alignItems: 'center' },
-  memoAvatarText: { color: '#fdf0d5', fontSize: 13, fontWeight: 'bold' },
-  unreadBadge: { position: 'absolute', right: 8, top: -2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: '#c1121f', borderWidth: 1.5, borderColor: '#fdf0d5', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  unreadBadgeText: { color: '#fdf0d5', fontSize: 10, fontWeight: '700' },
+  memoAvatar: { backgroundColor: '#7b2530', justifyContent: 'center', alignItems: 'center' },
+  memoAvatarText: { color: '#f7f7f4', fontSize: 13, fontWeight: 'bold' },
+  unreadBadge: { position: 'absolute', right: 8, top: -2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: '#7b2530', borderWidth: 1.5, borderColor: '#f7f7f4', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  unreadBadgeText: { color: '#f7f7f4', fontSize: 10, fontWeight: '700' },
   chatInfo: { flex: 1, justifyContent: 'center' },
   chatHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
-  profileName: { fontSize: 16, fontWeight: '600', color: '#003049' },
-  timeText: { fontSize: 12, color: '#669bbc' },
-  lastMessageText: { fontSize: 14, color: '#669bbc', maxWidth: '85%' },
-  authContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fdf0d5', padding: 24 },
+  profileName: { fontSize: 16, fontWeight: '600', color: '#1d2a36' },
+  timeText: { fontSize: 12, color: '#7f8a94' },
+  lastMessageText: { fontSize: 14, color: '#7f8a94', maxWidth: '85%' },
+  authContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f7f7f4', padding: 24 },
   authCard: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: '#fdf0d5',
+    backgroundColor: '#ffffff',
     borderRadius: 20,
     padding: 22,
     borderWidth: 1,
-    borderColor: '#669bbc',
-    shadowColor: '#003049',
+    borderColor: '#d3c7bb',
+    shadowColor: '#1d2a36',
     shadowOpacity: 0.08,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
-  authTitle: { fontSize: 34, fontWeight: '800', marginBottom: 8, color: '#003049', letterSpacing: 0.4 },
-  authSubtitle: { fontSize: 14, color: '#669bbc', marginBottom: 20 },
+  authTitle: { fontSize: 34, fontWeight: '800', marginBottom: 8, color: '#1d2a36', letterSpacing: 0.4 },
+  authSubtitle: { fontSize: 14, color: '#7f8a94', marginBottom: 20 },
   authInput: {
     width: '100%',
     height: 48,
     borderWidth: 1,
-    borderColor: '#669bbc',
+    borderColor: '#d3c7bb',
     borderRadius: 10,
     paddingHorizontal: 12,
     fontSize: 15,
     marginBottom: 14,
-    color: '#003049',
-    backgroundColor: '#fdf0d5',
+    color: '#1d2a36',
+    backgroundColor: '#fbfbf8',
   },
-  authMessage: { width: '100%', color: '#c1121f', fontSize: 14, marginTop: 2, marginBottom: 10 },
-  authButton: { width: '100%', height: 48, backgroundColor: '#003049', borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginTop: 8 },
-  authButtonText: { color: '#fdf0d5', fontSize: 16, fontWeight: 'bold' },
+  authMessage: { width: '100%', color: '#7b2530', fontSize: 14, marginTop: 2, marginBottom: 10 },
+  authButton: { width: '100%', height: 48, backgroundColor: '#1d2a36', borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginTop: 8 },
+  authButtonText: { color: '#f7f7f4', fontSize: 16, fontWeight: 'bold' },
   switchModeButton: { marginTop: 18, alignItems: 'center' },
-  switchModeText: { color: '#780000', fontSize: 15, fontWeight: '600' },
+  switchModeText: { color: '#7b2530', fontSize: 15, fontWeight: '600' },
 });

@@ -182,7 +182,7 @@ export default function ChatScreen() {
           <TextInput 
             style={styles.chatInput} 
             placeholder="輸入訊息..." 
-            placeholderTextColor="#669bbc"
+            placeholderTextColor="#7f8a94"
             value={inputText} 
             onChangeText={setInputText} 
             multiline={Platform.OS !== 'web'}
@@ -200,39 +200,39 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#fdf0d5' },
+  mainContainer: { flex: 1, backgroundColor: '#f7f7f4' },
   innerContainer: { flex: 1 },
-  chatHeader: { paddingTop: 50, paddingBottom: 12, paddingHorizontal: 10, backgroundColor: '#003049', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  chatHeader: { paddingTop: 50, paddingBottom: 12, paddingHorizontal: 10, backgroundColor: '#1d2a36', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   backButton: { width: 60, paddingLeft: 5 },
-  backText: { color: '#fdf0d5', fontSize: 16, fontWeight: '600' },
-  headerName: { fontSize: 18, fontWeight: 'bold', color: '#fdf0d5' },
+  backText: { color: '#f7f7f4', fontSize: 16, fontWeight: '600' },
+  headerName: { fontSize: 18, fontWeight: 'bold', color: '#f7f7f4' },
   msgRow: { flexDirection: 'row', marginBottom: 14, width: '100%' },
   myRow: { justifyContent: 'flex-end' },
   friendRow: { justifyContent: 'flex-start' },
   msgAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 8, marginTop: 2 },
-  memoAvatarInner: { backgroundColor: '#780000', justifyContent: 'center', alignItems: 'center' },
-  memoAvatarTextInner: { color: '#fdf0d5', fontSize: 10, fontWeight: 'bold' },
+  memoAvatarInner: { backgroundColor: '#7b2530', justifyContent: 'center', alignItems: 'center' },
+  memoAvatarTextInner: { color: '#f7f7f4', fontSize: 10, fontWeight: 'bold' },
   msgContentWrapper: { maxWidth: '75%', flexDirection: 'row', alignItems: 'flex-end' },
   bubble: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 16, maxWidth: '100%' },
-  myBubble: { backgroundColor: '#003049', marginRight: 4 },
-  friendBubble: { backgroundColor: '#fdf0d5', marginLeft: 4, borderWidth: 1, borderColor: '#669bbc' },
-  bubbleText: { fontSize: 16, lineHeight: 21, color: '#003049' },
-  myText: { color: '#fdf0d5' },
-  friendText: { color: '#003049' },
+  myBubble: { backgroundColor: '#1d2a36', marginRight: 4 },
+  friendBubble: { backgroundColor: '#ffffff', marginLeft: 4, borderWidth: 1, borderColor: '#d3c7bb' },
+  bubbleText: { fontSize: 16, lineHeight: 21, color: '#1d2a36' },
+  myText: { color: '#f7f7f4' },
+  friendText: { color: '#1d2a36' },
   timeWrapper: { marginHorizontal: 6, marginBottom: 2 },
-  timeText: { fontSize: 11, color: '#669bbc' },
+  timeText: { fontSize: 11, color: '#7f8a94' },
   inputBar: { 
     flexDirection: 'row', 
     paddingHorizontal: 12, 
     paddingTop: 10, 
     // 👑 修正：因為沒有底部導覽列了，為了不讓輸入框貼緊 iPhone 或滿版 Android 的底部安全線，iOS 給予 25 留白，其餘給 12
     paddingBottom: Platform.OS === 'ios' ? 25 : 12, 
-    backgroundColor: '#fdf0d5', 
+    backgroundColor: '#ffffff', 
     borderTopWidth: 1,
-    borderTopColor: '#669bbc',
+    borderTopColor: '#d3c7bb',
     alignItems: 'center' 
   },
-  chatInput: { flex: 1, minHeight: 38, maxHeight: 80, backgroundColor: '#fdf0d5', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 8, fontSize: 16, marginRight: 10, color: '#003049', borderWidth: 1, borderColor: '#669bbc' },
-  sendBtn: { backgroundColor: '#c1121f', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 18 },
-  sendBtnText: { color: '#fdf0d5', fontSize: 15, fontWeight: 'bold' }
+  chatInput: { flex: 1, minHeight: 38, maxHeight: 80, backgroundColor: '#fbfbf8', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 8, fontSize: 16, marginRight: 10, color: '#1d2a36', borderWidth: 1, borderColor: '#d3c7bb' },
+  sendBtn: { backgroundColor: '#7b2530', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 18 },
+  sendBtnText: { color: '#f7f7f4', fontSize: 15, fontWeight: 'bold' }
 });

@@ -178,7 +178,7 @@ export default function ChatScreen() {
           ref={textInputRef}
           style={styles.textInput}
           placeholder="輸入訊息..."
-          placeholderTextColor="#669bbc"
+          placeholderTextColor="#7f8a94"
           value={inputText}
           onChangeText={setInputText}
           onSubmitEditing={handleSendMessage} 
@@ -199,28 +199,28 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fdf0d5' },
-  header: { paddingTop: 60, paddingBottom: 14, paddingHorizontal: 16, backgroundColor: '#003049', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: '#f7f7f4' },
+  header: { paddingTop: 60, paddingBottom: 14, paddingHorizontal: 16, backgroundColor: '#1d2a36', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   backBtn: { width: 60 },
-  backText: { fontSize: 16, color: '#fdf0d5', fontWeight: '600' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#fdf0d5', textAlign: 'center', flex: 1 },
+  backText: { fontSize: 16, color: '#f7f7f4', fontWeight: '600' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#f7f7f4', textAlign: 'center', flex: 1 },
   msgRow: { flexDirection: 'row', marginBottom: 14, width: '100%' },
   myRow: { justifyContent: 'flex-end' },
   friendRow: { justifyContent: 'flex-start' },
   msgAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 8, marginTop: 2 },
-  memoAvatarInner: { backgroundColor: '#780000', justifyContent: 'center', alignItems: 'center' },
-  memoAvatarTextInner: { color: '#fdf0d5', fontSize: 10, fontWeight: 'bold' },
+  memoAvatarInner: { backgroundColor: '#7b2530', justifyContent: 'center', alignItems: 'center' },
+  memoAvatarTextInner: { color: '#f7f7f4', fontSize: 10, fontWeight: 'bold' },
   msgContentWrapper: { maxWidth: '75%', alignItems: 'flex-end' },
   bubble: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 16, maxWidth: '100%' },
-  myBubble: { backgroundColor: '#003049', marginRight: 4, borderBottomRightRadius: 4 },
-  friendBubble: { backgroundColor: '#fdf0d5', marginLeft: 4, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#669bbc' },
+  myBubble: { backgroundColor: '#1d2a36', marginRight: 4, borderBottomRightRadius: 4 },
+  friendBubble: { backgroundColor: '#ffffff', marginLeft: 4, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#d3c7bb' },
   bubbleText: { fontSize: 16, lineHeight: 21 },
-  myText: { color: '#fdf0d5' },
-  friendText: { color: '#003049' },
+  myText: { color: '#f7f7f4' },
+  friendText: { color: '#1d2a36' },
   timeWrapper: { justifyContent: 'flex-end', paddingBottom: 2, marginHorizontal: 4 },
-  timeText: { fontSize: 11, color: '#669bbc' },
-  inputBar: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#fdf0d5', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#669bbc' },
-  textInput: { flex: 1, backgroundColor: '#fdf0d5', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, fontSize: 16, marginRight: 10, color: '#003049', maxHeight: 100, borderWidth: 1, borderColor: '#669bbc' },
-  sendBtn: { backgroundColor: '#c1121f', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18 },
-  sendBtnText: { color: '#fdf0d5', fontWeight: 'bold', fontSize: 15 }
+  timeText: { fontSize: 11, color: '#7f8a94' },
+  inputBar: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#ffffff', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#d3c7bb' },
+  textInput: { flex: 1, backgroundColor: '#fbfbf8', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, fontSize: 16, marginRight: 10, color: '#1d2a36', maxHeight: 100, borderWidth: 1, borderColor: '#d3c7bb' },
+  sendBtn: { backgroundColor: '#7b2530', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18 },
+  sendBtnText: { color: '#f7f7f4', fontWeight: 'bold', fontSize: 15 }
 });

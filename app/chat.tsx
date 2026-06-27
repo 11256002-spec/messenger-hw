@@ -1,4 +1,5 @@
 import { useAppStore } from '@/context/app-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 // 👑 引入 useFocusEffect 確保每次切換分頁、進出聊天室時都能自動重置清空輸入框
@@ -6,6 +7,25 @@ import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 // 👑 關鍵修正：因為檔案移到了最外層，相對路徑從 ../../ 改為 ../ 才能正確引入配置
 import { supabaseFetch } from '../supabaseConfig';
+
+const getLastReadKey = (ownerEmail: string, chatId: string) => `mchat:lastRead:${ownerEmail}:${chatId}`;
+
+async function markChatsAsRead(ownerEmail: string, chatIds: string[]) {
+  if (!ownerEmail || !chatIds.length) return;
+
+  const now = String(Date.now());
+  for (const chatId of chatIds) {
+    const key = getLastReadKey(ownerEmail, chatId);
+    try {
+      await AsyncStorage.setItem(key, now);
+    } catch {
+      // noop
+    }
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(key, now);
+    }
+  }
+}
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -66,6 +86,11 @@ export default function ChatScreen() {
   }, [normalizedFriendEmail, isMemoMode]);
 
   // 輪詢取得最新聊天訊息
+  useEffect(() => {
+    if (!normalizedMyEmail || !chatIdCandidates.length) return;
+    void markChatsAsRead(normalizedMyEmail, chatIdCandidates);
+  }, [normalizedMyEmail, canonicalChatId]);
+
   useEffect(() => {
     async function fetchChatMessages() {
       if (!chatIdCandidates.length) return;
@@ -143,7 +168,7 @@ export default function ChatScreen() {
                 )}
                 <View style={styles.msgContentWrapper}>
                   <View style={[styles.bubble, isMe ? styles.myBubble : styles.friendBubble]}>
-                    <Text style={styles.bubbleText}>{item.text}</Text>
+                    <Text style={[styles.bubbleText, isMe ? styles.myText : styles.friendText]}>{item.text}</Text>
                   </View>
                   <View style={styles.timeWrapper}><Text style={styles.timeText}>{timeString}</Text></View>
                 </View>
@@ -157,7 +182,7 @@ export default function ChatScreen() {
           <TextInput 
             style={styles.chatInput} 
             placeholder="輸入訊息..." 
-            placeholderTextColor="#8e8e93"
+            placeholderTextColor="#669bbc"
             value={inputText} 
             onChangeText={setInputText} 
             multiline={Platform.OS !== 'web'}
@@ -175,35 +200,39 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#849BBF' },
+  mainContainer: { flex: 1, backgroundColor: '#fdf0d5' },
   innerContainer: { flex: 1 },
-  chatHeader: { paddingTop: 50, paddingBottom: 12, paddingHorizontal: 10, backgroundColor: '#1E1E1E', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  chatHeader: { paddingTop: 50, paddingBottom: 12, paddingHorizontal: 10, backgroundColor: '#003049', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   backButton: { width: 60, paddingLeft: 5 },
-  backText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  headerName: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
+  backText: { color: '#fdf0d5', fontSize: 16, fontWeight: '600' },
+  headerName: { fontSize: 18, fontWeight: 'bold', color: '#fdf0d5' },
   msgRow: { flexDirection: 'row', marginBottom: 14, width: '100%' },
   myRow: { justifyContent: 'flex-end' },
   friendRow: { justifyContent: 'flex-start' },
   msgAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 8, marginTop: 2 },
-  memoAvatarInner: { backgroundColor: '#004A26', justifyContent: 'center', alignItems: 'center' },
-  memoAvatarTextInner: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  memoAvatarInner: { backgroundColor: '#780000', justifyContent: 'center', alignItems: 'center' },
+  memoAvatarTextInner: { color: '#fdf0d5', fontSize: 10, fontWeight: 'bold' },
   msgContentWrapper: { maxWidth: '75%', flexDirection: 'row', alignItems: 'flex-end' },
   bubble: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 16, maxWidth: '100%' },
-  myBubble: { backgroundColor: '#7ECE55', marginRight: 4 },
-  friendBubble: { backgroundColor: '#fff', marginLeft: 4 },
-  bubbleText: { fontSize: 16, lineHeight: 21, color: '#000' },
+  myBubble: { backgroundColor: '#003049', marginRight: 4 },
+  friendBubble: { backgroundColor: '#fdf0d5', marginLeft: 4, borderWidth: 1, borderColor: '#669bbc' },
+  bubbleText: { fontSize: 16, lineHeight: 21, color: '#003049' },
+  myText: { color: '#fdf0d5' },
+  friendText: { color: '#003049' },
   timeWrapper: { marginHorizontal: 6, marginBottom: 2 },
-  timeText: { fontSize: 11, color: 'rgba(255,255,255,0.8)' },
+  timeText: { fontSize: 11, color: '#669bbc' },
   inputBar: { 
     flexDirection: 'row', 
     paddingHorizontal: 12, 
     paddingTop: 10, 
     // 👑 修正：因為沒有底部導覽列了，為了不讓輸入框貼緊 iPhone 或滿版 Android 的底部安全線，iOS 給予 25 留白，其餘給 12
     paddingBottom: Platform.OS === 'ios' ? 25 : 12, 
-    backgroundColor: '#fff', 
+    backgroundColor: '#fdf0d5', 
+    borderTopWidth: 1,
+    borderTopColor: '#669bbc',
     alignItems: 'center' 
   },
-  chatInput: { flex: 1, minHeight: 38, maxHeight: 80, backgroundColor: '#f5f5f5', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 8, fontSize: 16, marginRight: 10, color: '#000' },
-  sendBtn: { backgroundColor: '#06C755', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 18 },
-  sendBtnText: { color: '#fff', fontSize: 15, fontWeight: 'bold' }
+  chatInput: { flex: 1, minHeight: 38, maxHeight: 80, backgroundColor: '#fdf0d5', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 8, fontSize: 16, marginRight: 10, color: '#003049', borderWidth: 1, borderColor: '#669bbc' },
+  sendBtn: { backgroundColor: '#c1121f', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 18 },
+  sendBtnText: { color: '#fdf0d5', fontSize: 15, fontWeight: 'bold' }
 });

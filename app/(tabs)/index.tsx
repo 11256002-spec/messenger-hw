@@ -1,4 +1,5 @@
 import { useAppStore } from '@/context/app-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -6,10 +7,39 @@ import { FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'r
 import { useFocusEffect } from '@react-navigation/native';
 import { supabaseFetch } from '../../supabaseConfig';
 
+const getLastReadKey = (ownerEmail: string, chatId: string) => `mchat:lastRead:${ownerEmail}:${chatId}`;
+
+async function readLastReadAt(ownerEmail: string, chatIds: string[]): Promise<number> {
+  let latest = 0;
+
+  for (const chatId of chatIds) {
+    const key = getLastReadKey(ownerEmail, chatId);
+    let stored = '';
+
+    try {
+      stored = (await AsyncStorage.getItem(key)) ?? '';
+    } catch {
+      stored = '';
+    }
+
+    if (!stored && typeof window !== 'undefined') {
+      stored = window.localStorage.getItem(key) ?? '';
+    }
+
+    const ts = Number(stored);
+    if (!Number.isNaN(ts) && ts > latest) {
+      latest = ts;
+    }
+  }
+
+  return latest;
+}
+
 export default function MessengerHomeScreen() {
   const router = useRouter();
   const { currentUserEmail, login, register } = useAppStore(); // 👑 移除不用到的 logout
   const myEmail = currentUserEmail ?? '';
+  const normalizedMyEmail = myEmail.trim().toLowerCase();
   
   const [chats, setChats] = useState<any[]>([]);
   const [isRegisterMode, setIsRegisterMode] = useState<boolean>(false);
@@ -84,7 +114,8 @@ export default function MessengerHomeScreen() {
         lastMessage: memoLastMessage,
         time: memoLastTime,
         isMemo: true,
-        hasUnread: false
+        hasUnread: false,
+        unreadCount: 0,
       });
 
       // 2. 雲端好友列表
@@ -96,21 +127,31 @@ export default function MessengerHomeScreen() {
           const friendListPromises = friendsData.map(async (friend: any) => {
             const chatIds = buildChatIdCandidates(myEmail, friend.email);
             const orFilter = chatIds.map((id) => `chat_id.eq.${id}`).join(',');
-            const msgData = await supabaseFetch(`chat_messages?or=(${orFilter})&order=created_at.desc&limit=1`, 'GET');
+            const msgData = await supabaseFetch(`chat_messages?or=(${orFilter})&order=created_at.asc`, 'GET');
             
             let lastMessage = "暫無訊息，開始聊天吧！";
             let lastTime = "";
             let hasUnread = false;
+            let unreadCount = 0;
             
             if (msgData && msgData.length > 0) {
-              lastMessage = msgData[0].text;
-              const date = new Date(msgData[0].created_at);
+              const latestMsg = msgData[msgData.length - 1];
+              lastMessage = latestMsg.text;
+              const date = new Date(latestMsg.created_at);
               if (!isNaN(date.getTime())) {
                 lastTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
               }
-              if (msgData[0].sender_email !== myEmail) {
-                hasUnread = true; 
-              }
+
+              const latestReadAt = await readLastReadAt(normalizedMyEmail, chatIds);
+              unreadCount = msgData.filter((msg: any) => {
+                const sender = String(msg.sender_email || '').toLowerCase();
+                if (sender === normalizedMyEmail) return false;
+                const createdAt = new Date(msg.created_at).getTime();
+                if (Number.isNaN(createdAt)) return false;
+                return latestReadAt === 0 || createdAt > latestReadAt;
+              }).length;
+
+              hasUnread = unreadCount > 0;
             }
 
             return {
@@ -121,7 +162,8 @@ export default function MessengerHomeScreen() {
               lastMessage,
               time: lastTime,
               isMemo: false,
-              hasUnread: hasUnread
+              hasUnread,
+              unreadCount,
             };
           });
 
@@ -198,40 +240,49 @@ export default function MessengerHomeScreen() {
   if (!currentUserEmail) {
     return (
       <View style={styles.authContainer}>
-        <Text style={styles.authTitle}>{isRegisterMode ? "建立 M-Chat 帳號" : "M-Chat"}</Text>
-        {isRegisterMode && (
+        <View style={styles.authCard}>
+          <Text style={styles.authTitle}>{isRegisterMode ? "建立 M-Chat 帳號" : "M-Chat"}</Text>
+          <Text style={styles.authSubtitle}>與好友保持聯繫，訊息同步更即時</Text>
+
+          {isRegisterMode && (
+            <TextInput
+              style={styles.authInput}
+              placeholder="顯示名稱"
+              placeholderTextColor="#669bbc"
+              value={inputName}
+              onChangeText={setInputName}
+              returnKeyType="next"
+            />
+          )}
           <TextInput
             style={styles.authInput}
-            placeholder="顯示名稱"
-            value={inputName}
-            onChangeText={setInputName}
+            placeholder="電子郵件帳號 (Email)"
+            placeholderTextColor="#669bbc"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={inputEmail}
+            onChangeText={setInputEmail}
             returnKeyType="next"
           />
-        )}
-        <TextInput
-          style={styles.authInput}
-          placeholder="電子郵件帳號 (Email)"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={inputEmail}
-          onChangeText={setInputEmail}
-          returnKeyType="next"
-        />
-        <TextInput
-          style={styles.authInput}
-          placeholder="密碼 (最少6位)"
-          secureTextEntry
-          value={inputPassword}
-          onChangeText={setInputPassword}
-          onSubmitEditing={handleAuthSubmit}
-          returnKeyType={isRegisterMode ? 'done' : 'send'}
-          blurOnSubmit={false}
-        />
-        {!!authMessage && <Text style={styles.authMessage}>{authMessage}</Text>}
-        <Pressable style={styles.authButton} onPress={isRegisterMode ? handleRegister : handleLogin}><Text style={styles.authButtonText}>{isRegisterMode ? "註冊" : "登入"}</Text></Pressable>
-        <Pressable onPress={() => { setIsRegisterMode(!isRegisterMode); setAuthMessage(''); }} style={{ marginTop: 25 }}>
-          <Text style={{ color: '#06C755', fontSize: 15, fontWeight: '600' }}>{isRegisterMode ? "切換至登入" : "建立新帳號"}</Text>
-        </Pressable>
+          <TextInput
+            style={styles.authInput}
+            placeholder="密碼 (最少6位)"
+            placeholderTextColor="#669bbc"
+            secureTextEntry
+            value={inputPassword}
+            onChangeText={setInputPassword}
+            onSubmitEditing={handleAuthSubmit}
+            returnKeyType={isRegisterMode ? 'done' : 'send'}
+            blurOnSubmit={false}
+          />
+          {!!authMessage && <Text style={styles.authMessage}>{authMessage}</Text>}
+          <Pressable style={styles.authButton} onPress={isRegisterMode ? handleRegister : handleLogin}>
+            <Text style={styles.authButtonText}>{isRegisterMode ? "註冊" : "登入"}</Text>
+          </Pressable>
+          <Pressable onPress={() => { setIsRegisterMode(!isRegisterMode); setAuthMessage(''); }} style={styles.switchModeButton}>
+            <Text style={styles.switchModeText}>{isRegisterMode ? "切換至登入" : "建立新帳號"}</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -248,7 +299,7 @@ export default function MessengerHomeScreen() {
         <TextInput 
           style={styles.searchInput} 
           placeholder="搜尋好友名稱或 Email..." 
-          placeholderTextColor="#a1a1a1"
+          placeholderTextColor="#669bbc"
           value={searchText}
           onChangeText={setSearchText}
         />
@@ -256,6 +307,7 @@ export default function MessengerHomeScreen() {
 
       <FlatList
         data={filteredChats}
+        contentContainerStyle={styles.chatListContent}
         keyExtractor={(item, index) => item.id?.toString() || index.toString()}
         renderItem={({ item }) => (
           <Pressable 
@@ -263,6 +315,10 @@ export default function MessengerHomeScreen() {
             onPress={() => {
               // 👑 點擊聊天對象準備換頁進入對話框前，先把首頁的搜尋狀態清空
               setSearchText("");
+              setChats((prev) => prev.map((chat) => {
+                if (chat.email !== item.email) return chat;
+                return { ...chat, hasUnread: false, unreadCount: 0 };
+              }));
               router.push({ pathname: '/chat', params: { friendEmail: item.email } });
             }}
           >
@@ -272,12 +328,16 @@ export default function MessengerHomeScreen() {
               ) : (
                 <Image source={{ uri: item.avatar }} style={styles.avatar} />
               )}
-              {item.hasUnread && <View style={styles.unreadBadge} />}
+              {!!item.unreadCount && item.unreadCount > 0 && (
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadBadgeText}>{item.unreadCount > 99 ? '99+' : String(item.unreadCount)}</Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.chatInfo}>
               <View style={styles.chatHeaderRow}>
-                <Text style={[styles.profileName, item.isMemo && { color: '#004A26' }]}>{item.name}</Text>
+                <Text style={[styles.profileName, item.isMemo && { color: '#780000' }]}>{item.name}</Text>
                 <Text style={styles.timeText}>{item.time}</Text>
               </View>
               <Text style={styles.lastMessageText} numberOfLines={1}>{item.lastMessage}</Text>
@@ -290,26 +350,80 @@ export default function MessengerHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fdf0d5' },
   // 👑 調整 Header 的結構樣式，使其保持簡潔並將標題維持在好看的位置
-  header: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 15, backgroundColor: '#06C755', flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
-  searchBar: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#fff', borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0' },
-  searchInput: { backgroundColor: '#f5f5f5', height: 38, borderRadius: 8, paddingHorizontal: 14, fontSize: 14, color: '#000' },
-  chatItem: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: '#f7f7f7' },
+  header: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#003049', flexDirection: 'row', alignItems: 'center' },
+  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fdf0d5' },
+  searchBar: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
+  searchInput: {
+    backgroundColor: '#fdf0d5',
+    height: 44,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 14,
+    color: '#003049',
+    borderWidth: 1,
+    borderColor: '#669bbc',
+  },
+  chatListContent: { paddingHorizontal: 12, paddingBottom: 20 },
+  chatItem: {
+    flexDirection: 'row',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#669bbc',
+    backgroundColor: '#fdf0d5',
+    shadowColor: '#003049',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
   avatar: { width: 52, height: 52, borderRadius: 26, marginRight: 14 },
-  memoAvatar: { backgroundColor: '#004A26', justifyContent: 'center', alignItems: 'center' },
-  memoAvatarText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
-  unreadBadge: { position: 'absolute', right: 12, top: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#06C755', borderWidth: 1.5, borderColor: '#fff' },
+  memoAvatar: { backgroundColor: '#780000', justifyContent: 'center', alignItems: 'center' },
+  memoAvatarText: { color: '#fdf0d5', fontSize: 13, fontWeight: 'bold' },
+  unreadBadge: { position: 'absolute', right: 8, top: -2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: '#c1121f', borderWidth: 1.5, borderColor: '#fdf0d5', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  unreadBadgeText: { color: '#fdf0d5', fontSize: 10, fontWeight: '700' },
   chatInfo: { flex: 1, justifyContent: 'center' },
   chatHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
-  profileName: { fontSize: 16, fontWeight: '600', color: '#111' },
-  timeText: { fontSize: 12, color: '#a1a1a1' },
-  lastMessageText: { fontSize: 14, color: '#8e8e93', maxWidth: '85%' },
-  authContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', padding: 30 },
-  authTitle: { fontSize: 36, fontWeight: 'bold', marginBottom: 40, color: '#06C755', letterSpacing: 1 },
-  authInput: { width: '100%', height: 48, borderBottomWidth: 1, borderBottomColor: '#ccc', paddingHorizontal: 5, fontSize: 16, marginBottom: 20, color: '#000' },
-  authMessage: { width: '100%', color: '#dc2626', fontSize: 14, marginBottom: 8 },
-  authButton: { width: '100%', height: 48, backgroundColor: '#06C755', borderRadius: 5, justifyContent: 'center', alignItems: 'center', marginTop: 15 },
-  authButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
+  profileName: { fontSize: 16, fontWeight: '600', color: '#003049' },
+  timeText: { fontSize: 12, color: '#669bbc' },
+  lastMessageText: { fontSize: 14, color: '#669bbc', maxWidth: '85%' },
+  authContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fdf0d5', padding: 24 },
+  authCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#fdf0d5',
+    borderRadius: 20,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: '#669bbc',
+    shadowColor: '#003049',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  authTitle: { fontSize: 34, fontWeight: '800', marginBottom: 8, color: '#003049', letterSpacing: 0.4 },
+  authSubtitle: { fontSize: 14, color: '#669bbc', marginBottom: 20 },
+  authInput: {
+    width: '100%',
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#669bbc',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    marginBottom: 14,
+    color: '#003049',
+    backgroundColor: '#fdf0d5',
+  },
+  authMessage: { width: '100%', color: '#c1121f', fontSize: 14, marginTop: 2, marginBottom: 10 },
+  authButton: { width: '100%', height: 48, backgroundColor: '#003049', borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginTop: 8 },
+  authButtonText: { color: '#fdf0d5', fontSize: 16, fontWeight: 'bold' },
+  switchModeButton: { marginTop: 18, alignItems: 'center' },
+  switchModeText: { color: '#780000', fontSize: 15, fontWeight: '600' },
 });

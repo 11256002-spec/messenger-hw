@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { supabaseFetch } from '../../supabaseConfig';
 
 export default function SettingScreen() {
@@ -177,7 +177,7 @@ export default function SettingScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#06C755" />
+        <ActivityIndicator size="large" color="#003049" />
       </View>
     );
   }
@@ -197,118 +197,146 @@ export default function SettingScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 上方頂欄 */}
-      <View style={styles.headerRow}>
-        <View style={styles.titleArea}>
-          <Text style={styles.title}>帳號設定</Text>
-        </View>
-        <Pressable style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>登出</Text>
-        </Pressable>
-      </View>
-
-      {/* 中央大頭貼區塊 (比照截圖設計) */}
-      <View style={styles.avatarSection}>
-        <Image source={{ uri: avatar }} style={styles.largeAvatar} />
-        <Pressable style={styles.changeAvatarBtn} onPress={handlePickImage}>
-          <Text style={styles.changeAvatarText}>變更大頭貼</Text>
-        </Pressable>
-      </View>
-
-      {/* 欄位表單群組 */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>顯示名稱 (名字)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="請輸入您的暱稱"
-          placeholderTextColor="#a1a1a1"
-          value={name}
-          onChangeText={setName}
-          returnKeyType="next"
-        />
-      </View>
-
-      {/* 👑 密碼欄位群組（右側附加眼睛圖標切換） */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>修改密碼</Text>
-        <View style={styles.passwordInputContainer}>
-          <TextInput
-            style={styles.passwordInput}
-            placeholder="請輸入新密碼"
-            placeholderTextColor="#a1a1a1"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={isPasswordSecure} // 👑 true為暗碼，false為明碼
-            onSubmitEditing={handleProfileSubmit}
-            returnKeyType="done"
-            blurOnSubmit={false}
-          />
-          <Pressable 
-            style={styles.eyeButton} 
-            onPress={() => setIsPasswordSecure(!isPasswordSecure)}
-          >
-            <FontAwesome 
-              name={isPasswordSecure ? "eye-slash" : "eye"} 
-              size={20} 
-              color="#8e8e93" 
-            />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* 上方頂欄 */}
+        <View style={styles.headerRow}>
+          <View style={styles.titleArea}>
+            <Text style={styles.title}>帳號設定</Text>
+            <Text style={styles.subtitle}>更新個人資訊，讓聊天室更有你的風格</Text>
+          </View>
+          <Pressable style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>登出</Text>
           </Pressable>
         </View>
-      </View>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>電子郵件 (帳號無法變更)</Text>
-        <TextInput
-          style={[styles.input, styles.disabledInput]}
-          value={myEmail} 
-          editable={false}
-        />
-      </View>
+        {/* 中央大頭貼區塊 */}
+        <View style={styles.avatarCard}>
+          <Image source={{ uri: avatar }} style={styles.largeAvatar} />
+          <Pressable style={styles.changeAvatarBtn} onPress={handlePickImage}>
+            <Text style={styles.changeAvatarText}>變更大頭貼</Text>
+          </Pressable>
+        </View>
 
-      {/* 綠色儲存修改按鈕 */}
-      <Pressable style={styles.saveButton} onPress={handleUpdateProfile}>
-        <Text style={styles.saveButtonText}>儲存修改</Text>
-      </Pressable>
+        <View style={styles.formCard}>
+          {/* 欄位表單群組 */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>顯示名稱 (名字)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="請輸入您的暱稱"
+              placeholderTextColor="#669bbc"
+              value={name}
+              onChangeText={setName}
+              returnKeyType="next"
+            />
+          </View>
+
+          {/* 👑 密碼欄位群組（右側附加眼睛圖標切換） */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>修改密碼</Text>
+            <View style={styles.passwordInputContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="請輸入新密碼"
+                placeholderTextColor="#669bbc"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={isPasswordSecure} // 👑 true為暗碼，false為明碼
+                onSubmitEditing={handleProfileSubmit}
+                returnKeyType="done"
+                blurOnSubmit={false}
+              />
+              <Pressable 
+                style={styles.eyeButton} 
+                onPress={() => setIsPasswordSecure(!isPasswordSecure)}
+              >
+                <FontAwesome 
+                  name={isPasswordSecure ? "eye-slash" : "eye"} 
+                  size={20} 
+                  color="#780000" 
+                />
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>電子郵件 (帳號無法變更)</Text>
+            <TextInput
+              style={[styles.input, styles.disabledInput]}
+              value={myEmail} 
+              editable={false}
+            />
+          </View>
+
+          {/* 綠色儲存修改按鈕 */}
+          <Pressable style={styles.saveButton} onPress={handleUpdateProfile}>
+            <Text style={styles.saveButtonText}>儲存修改</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 24, paddingTop: 60 },
+  container: { flex: 1, backgroundColor: '#fdf0d5' },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 54, paddingBottom: 40 },
   center: { justifyContent: 'center', alignItems: 'center' },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   titleArea: { flex: 1 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#000' },
-  logoutButton: { backgroundColor: '#ff3b30', paddingVertical: 6, paddingHorizontal: 14, borderRadius: 16 },
-  logoutButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+  title: { fontSize: 30, fontWeight: '800', color: '#003049' },
+  subtitle: { marginTop: 6, fontSize: 13, color: '#669bbc' },
+  logoutButton: { backgroundColor: '#c1121f', paddingVertical: 7, paddingHorizontal: 14, borderRadius: 999 },
+  logoutButtonText: { color: '#fdf0d5', fontSize: 14, fontWeight: 'bold' },
   
   // 大頭貼區塊樣式
-  avatarSection: { alignItems: 'center', marginBottom: 25 },
-  largeAvatar: { width: 110, height: 110, borderRadius: 55, backgroundColor: '#eee', marginBottom: 12 },
-  changeAvatarBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6, borderWidth: 1, borderColor: '#ccc' },
-  changeAvatarText: { fontSize: 13, color: '#333', fontWeight: '500' },
+  avatarCard: {
+    alignItems: 'center',
+    marginBottom: 16,
+    backgroundColor: '#fdf0d5',
+    borderRadius: 20,
+    paddingVertical: 18,
+    borderWidth: 1,
+    borderColor: '#669bbc',
+    shadowColor: '#003049',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+  },
+  largeAvatar: { width: 112, height: 112, borderRadius: 56, backgroundColor: '#fdf0d5', marginBottom: 12, borderWidth: 3, borderColor: '#669bbc' },
+  changeAvatarBtn: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: '#669bbc', backgroundColor: '#fdf0d5' },
+  changeAvatarText: { fontSize: 13, color: '#780000', fontWeight: '600' },
 
-  inputGroup: { marginBottom: 20 },
-  label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8 },
-  input: { backgroundColor: '#f0f0f2', height: 48, borderRadius: 8, paddingHorizontal: 16, fontSize: 16, color: '#000', borderWidth: 1, borderColor: '#e5e5ea' },
-  disabledInput: { backgroundColor: '#e5e5ea', color: '#8e8e93', borderColor: '#d1d1d6' },
+  formCard: {
+    backgroundColor: '#fdf0d5',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#669bbc',
+  },
+
+  inputGroup: { marginBottom: 16 },
+  label: { fontSize: 13, fontWeight: '700', color: '#003049', marginBottom: 7 },
+  input: { backgroundColor: '#fdf0d5', height: 50, borderRadius: 12, paddingHorizontal: 16, fontSize: 16, color: '#003049', borderWidth: 1, borderColor: '#669bbc' },
+  disabledInput: { backgroundColor: '#fdf0d5', color: '#669bbc', borderColor: '#669bbc' },
   
   // 👑 密碼專用眼睛包覆層與佈局
   passwordInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f0f2',
-    height: 48,
-    borderRadius: 8,
+    backgroundColor: '#fdf0d5',
+    height: 50,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e5ea',
+    borderColor: '#669bbc',
     paddingHorizontal: 16,
   },
   passwordInput: {
     flex: 1,
     height: '100%',
     fontSize: 16,
-    color: '#000',
+    color: '#003049',
   },
   eyeButton: {
     paddingLeft: 10,
@@ -318,11 +346,23 @@ const styles = StyleSheet.create({
   },
 
   // 綠色儲存按鈕
-  saveButton: { backgroundColor: '#06C755', height: 50, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginTop: 15 },
-  saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  saveButton: {
+    backgroundColor: '#003049',
+    height: 50,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+    shadowColor: '#003049',
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  saveButtonText: { color: '#fdf0d5', fontSize: 16, fontWeight: 'bold' },
 
-  errorText: { fontSize: 22, fontWeight: 'bold', color: '#333', marginBottom: 10 },
+  errorText: { fontSize: 22, fontWeight: 'bold', color: '#780000', marginBottom: 10 },
   errorSubtitle: { fontSize: 14, color: '#666', marginBottom: 24, textAlign: 'center' },
-  registerButton: { backgroundColor: '#06C755', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8 },
-  registerButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
+  registerButton: { backgroundColor: '#003049', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8 },
+  registerButtonText: { color: '#fdf0d5', fontSize: 16, fontWeight: 'bold' }
 });

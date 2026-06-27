@@ -281,30 +281,36 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>探索與增添好友</Text>
-      <Text style={styles.subtitle}>目前登入：{currentUserEmail ?? '尚未登入'}</Text>
+      <View style={styles.headerCard}>
+        <Text style={styles.title}>探索與增添好友</Text>
+        <Text style={styles.subtitle}>目前登入：{currentUserEmail ?? '尚未登入'}</Text>
+      </View>
 
       {/* 搜尋組件 */}
-      <View style={styles.searchBox}>
-        <TextInput
-          style={styles.input}
-          placeholder="輸入好友的 ID、姓名 或 Email..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          autoCapitalize="none"
-          autoCorrect={false}
-          onSubmitEditing={handleSearch}
-          returnKeyType="search"
-          blurOnSubmit={false}
-        />
-        <Pressable style={styles.searchBtn} onPress={handleSearch} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>搜尋</Text>}
-        </Pressable>
+      <View style={styles.searchCard}>
+        <View style={styles.searchBox}>
+          <TextInput
+            style={styles.input}
+            placeholder="輸入好友的 ID、姓名 或 Email..."
+            placeholderTextColor="#669bbc"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
+            blurOnSubmit={false}
+          />
+          <Pressable style={styles.searchBtn} onPress={handleSearch} disabled={loading}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>搜尋</Text>}
+          </Pressable>
+        </View>
       </View>
 
       {/* 搜尋結果列表 */}
       <FlatList
         data={searchResults}
+        contentContainerStyle={styles.resultListContent}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <View style={styles.userCard}>
@@ -365,38 +371,82 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc', paddingTop: 60, paddingHorizontal: 20 },
-  title: { fontSize: 24, fontWeight: '900', color: '#0f172a' },
-  subtitle: { fontSize: 14, color: '#64748b', marginTop: 4, marginBottom: 24 },
-  searchBox: { flexDirection: 'row', marginBottom: 20 },
-  input: { flex: 1, height: 46, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, paddingHorizontal: 16, fontSize: 15, marginRight: 10, color: '#000' },
-  searchBtn: { backgroundColor: '#06C755', height: 46, width: 80, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  btnText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
-  userCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 10, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' },
-  userName: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
-  userEmail: { fontSize: 13, color: '#64748b', marginTop: 2 },
-  addBtn: { backgroundColor: '#0084FF', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 6 },
-  addBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  emptyText: { textAlign: 'center', color: '#64748b', marginTop: 30, fontSize: 15 },
-  sectionBox: { marginTop: 10, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', padding: 14 },
-  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#0f172a', marginBottom: 10 },
-  emptySmallText: { color: '#64748b', fontSize: 13 },
+  container: { flex: 1, backgroundColor: '#fdf0d5', paddingTop: 60, paddingHorizontal: 16 },
+  headerCard: {
+    backgroundColor: '#fdf0d5',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#669bbc',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: '#003049',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  title: { fontSize: 24, fontWeight: '900', color: '#003049' },
+  subtitle: { fontSize: 14, color: '#669bbc', marginTop: 4 },
+  searchCard: {
+    marginTop: 12,
+    marginBottom: 10,
+    backgroundColor: '#fdf0d5',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#669bbc',
+    padding: 12,
+  },
+  searchBox: { flexDirection: 'row' },
+  input: {
+    flex: 1,
+    height: 46,
+    backgroundColor: '#fdf0d5',
+    borderWidth: 1,
+    borderColor: '#669bbc',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    marginRight: 8,
+    color: '#003049',
+  },
+  searchBtn: { backgroundColor: '#003049', height: 46, width: 80, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  btnText: { color: '#fdf0d5', fontSize: 15, fontWeight: 'bold' },
+  resultListContent: { paddingBottom: 8 },
+  userCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fdf0d5',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#669bbc',
+  },
+  userName: { fontSize: 16, fontWeight: 'bold', color: '#003049' },
+  userEmail: { fontSize: 13, color: '#669bbc', marginTop: 2 },
+  addBtn: { backgroundColor: '#669bbc', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8 },
+  addBtnText: { color: '#fdf0d5', fontSize: 13, fontWeight: '600' },
+  emptyText: { textAlign: 'center', color: '#669bbc', marginTop: 30, fontSize: 15 },
+  sectionBox: { marginTop: 8, marginBottom: 16, backgroundColor: '#fdf0d5', borderRadius: 14, borderWidth: 1, borderColor: '#669bbc', padding: 14 },
+  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#003049', marginBottom: 10 },
+  emptySmallText: { color: '#669bbc', fontSize: 13 },
   requestRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#669bbc',
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 10,
     marginBottom: 8,
   },
-  requestEmail: { flex: 1, marginRight: 10, color: '#0f172a', fontSize: 13 },
+  requestEmail: { flex: 1, marginRight: 10, color: '#003049', fontSize: 13 },
   requestActions: { flexDirection: 'row' },
   actionBtn: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, marginLeft: 8 },
-  acceptBtn: { backgroundColor: '#16a34a' },
-  rejectBtn: { backgroundColor: '#dc2626' },
-  actionText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  pendingText: { color: '#0369a1', fontSize: 12, fontWeight: '700' },
+  acceptBtn: { backgroundColor: '#003049' },
+  rejectBtn: { backgroundColor: '#c1121f' },
+  actionText: { color: '#fdf0d5', fontSize: 12, fontWeight: '700' },
+  pendingText: { color: '#780000', fontSize: 12, fontWeight: '700' },
 });

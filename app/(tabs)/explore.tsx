@@ -5,10 +5,30 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { supabaseFetch } from '../../supabaseConfig';
 
+const FRIEND_REQUEST_PREFIX = 'friend_request_';
+
+type FriendRequestStatus = 'pending' | 'accepted' | 'rejected';
+
+type FriendRequestPayload = {
+  type: 'friend_request';
+  from: string;
+  to: string;
+  status: FriendRequestStatus;
+  createdAt: string;
+  actedAt?: string;
+};
+
+type FriendRequestItem = FriendRequestPayload & {
+  id: string;
+};
+
 export default function ExploreScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [incomingRequests, setIncomingRequests] = useState<FriendRequestItem[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = useState<FriendRequestItem[]>([]);
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
   const { currentUserEmail } = useAppStore();
 
   // 👑 換頁切換 Tab 進來時，自動重置並徹底清空搜尋狀態與結果
@@ -16,8 +36,56 @@ export default function ExploreScreen() {
     useCallback(() => {
       setSearchQuery('');
       setSearchResults([]);
-    }, [])
+      void loadRequests();
+    }, [currentUserEmail])
   );
+
+  function parseRequestRow(row: any): FriendRequestItem | null {
+    if (!row?.chat_id || typeof row?.text !== 'string') return null;
+    if (!String(row.chat_id).startsWith(FRIEND_REQUEST_PREFIX)) return null;
+
+    try {
+      const payload = JSON.parse(row.text) as FriendRequestPayload;
+      if (payload.type !== 'friend_request') return null;
+      if (!payload.from || !payload.to || !payload.status) return null;
+      return {
+        id: String(row.id),
+        ...payload,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async function getLatestRequests(): Promise<FriendRequestItem[]> {
+    const rows = await supabaseFetch(`chat_messages?chat_id=like.${FRIEND_REQUEST_PREFIX}*&order=created_at.desc`);
+    if (!Array.isArray(rows)) return [];
+
+    const latestByDirection = new Map<string, FriendRequestItem>();
+    for (const row of rows) {
+      const parsed = parseRequestRow(row);
+      if (!parsed) continue;
+      const key = `${parsed.from}->${parsed.to}`;
+      if (!latestByDirection.has(key)) {
+        latestByDirection.set(key, parsed);
+      }
+    }
+
+    return Array.from(latestByDirection.values());
+  }
+
+  async function loadRequests() {
+    const me = (currentUserEmail ?? '').trim().toLowerCase();
+    if (!me) {
+      setIncomingRequests([]);
+      setOutgoingRequests([]);
+      return;
+    }
+
+    const latestRequests = await getLatestRequests();
+    setIncomingRequests(latestRequests.filter((req) => req.to === me && req.status === 'pending'));
+    setOutgoingRequests(latestRequests.filter((req) => req.from === me && req.status === 'pending'));
+  }
 
   // 搜尋雲端使用者
   async function handleSearch() {
@@ -60,8 +128,8 @@ export default function ExploreScreen() {
 
   // 加好友功能 🚀
   async function handleAddFriend(friendEmail: string) {
-    const me = (currentUserEmail ?? '').trim();
-    const friend = friendEmail.trim();
+    const me = (currentUserEmail ?? '').trim().toLowerCase();
+    const friend = friendEmail.trim().toLowerCase();
 
     if (!me) {
       if (Platform.OS === 'web') window.alert('請先登入後再加好友。');
@@ -71,6 +139,21 @@ export default function ExploreScreen() {
 
     setLoading(true);
     try {
+      const latestRequests = await getLatestRequests();
+      const pendingOutgoing = latestRequests.find((req) => req.from === me && req.to === friend && req.status === 'pending');
+      if (pendingOutgoing) {
+        if (Platform.OS === 'web') window.alert('你已送出邀請，請等待對方回覆。');
+        else Alert.alert('提示', '你已送出邀請，請等待對方回覆。');
+        return;
+      }
+
+      const pendingIncoming = latestRequests.find((req) => req.from === friend && req.to === me && req.status === 'pending');
+      if (pendingIncoming) {
+        if (Platform.OS === 'web') window.alert('對方已邀請你，請到下方待處理邀請點同意。');
+        else Alert.alert('提示', '對方已邀請你，請到下方待處理邀請點同意。');
+        return;
+      }
+
       // 使用 ilike 機制撈取資料庫內最正確的大小寫使用者資料
       const myUsers = await supabaseFetch(`app_users?email=ilike.${encodeURIComponent(me)}`);
       const friendUsers = await supabaseFetch(`app_users?email=ilike.${encodeURIComponent(friend)}`);
@@ -96,23 +179,30 @@ export default function ExploreScreen() {
         return;
       }
 
-      // 雙向加入好友列表（存入對方的正確大小寫 Email）
-      const updatedMyFriends = [...myFriends, friendData.email];
-      const updatedFriendFriends = [...friendFriends, myData.email];
+      const requestPayload: FriendRequestPayload = {
+        type: 'friend_request',
+        from: myData.email.toLowerCase(),
+        to: friendData.email.toLowerCase(),
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
 
-      // 確實更新雲端資料庫
-      await supabaseFetch(`app_users?id=eq.${myData.id}`, 'PATCH', { friends: updatedMyFriends });
-      await supabaseFetch(`app_users?id=eq.${friendData.id}`, 'PATCH', { friends: updatedFriendFriends });
+      await supabaseFetch('chat_messages', 'POST', {
+        chat_id: `${FRIEND_REQUEST_PREFIX}${myData.email.toLowerCase()}_${friendData.email.toLowerCase()}`,
+        sender_email: myData.email,
+        text: JSON.stringify(requestPayload),
+      });
 
       if (Platform.OS === 'web') {
-        window.alert(`已成功與 ${friendData.name || friendData.email} 互加為好友！`);
+        window.alert(`已送出好友邀請給 ${friendData.name || friendData.email}！`);
       } else {
-        Alert.alert('成功', `已成功與 ${friendData.name || friendData.email} 互加為好友！`);
+        Alert.alert('成功', `已送出好友邀請給 ${friendData.name || friendData.email}！`);
       }
 
       // 👑 儲存成功後，立刻重置清空輸入框與搜尋結果，保持畫面乾淨
       setSearchQuery('');
       setSearchResults([]);
+      await loadRequests();
 
     } catch (err) {
       console.error("加好友失敗:", err);
@@ -120,6 +210,72 @@ export default function ExploreScreen() {
       else Alert.alert('錯誤', '網路連線失敗，請稍後再試。');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function updateRequestStatus(request: FriendRequestItem, status: Exclude<FriendRequestStatus, 'pending'>) {
+    const nextPayload: FriendRequestPayload = {
+      ...request,
+      status,
+      actedAt: new Date().toISOString(),
+    };
+
+    await supabaseFetch(`chat_messages?id=eq.${request.id}`, 'PATCH', {
+      text: JSON.stringify(nextPayload),
+    });
+  }
+
+  async function handleAcceptRequest(request: FriendRequestItem) {
+    const me = (currentUserEmail ?? '').trim().toLowerCase();
+    if (!me) return;
+
+    setProcessingRequestId(request.id);
+    try {
+      const [myUsers, friendUsers] = await Promise.all([
+        supabaseFetch(`app_users?email=eq.${me}`),
+        supabaseFetch(`app_users?email=eq.${request.from}`),
+      ]);
+
+      if (!Array.isArray(myUsers) || !myUsers.length || !Array.isArray(friendUsers) || !friendUsers.length) {
+        throw new Error('找不到使用者資料');
+      }
+
+      const myData = myUsers[0];
+      const friendData = friendUsers[0];
+      const myFriends: string[] = Array.isArray(myData.friends) ? myData.friends : [];
+      const friendFriends: string[] = Array.isArray(friendData.friends) ? friendData.friends : [];
+
+      if (!myFriends.some((email) => email.toLowerCase() === request.from)) {
+        await supabaseFetch(`app_users?id=eq.${myData.id}`, 'PATCH', { friends: [...myFriends, friendData.email] });
+      }
+      if (!friendFriends.some((email) => email.toLowerCase() === me)) {
+        await supabaseFetch(`app_users?id=eq.${friendData.id}`, 'PATCH', { friends: [...friendFriends, myData.email] });
+      }
+
+      await updateRequestStatus(request, 'accepted');
+      if (Platform.OS === 'web') window.alert('已同意好友邀請。');
+      else Alert.alert('成功', '已同意好友邀請。');
+      await loadRequests();
+    } catch {
+      if (Platform.OS === 'web') window.alert('同意邀請失敗，請稍後再試。');
+      else Alert.alert('錯誤', '同意邀請失敗，請稍後再試。');
+    } finally {
+      setProcessingRequestId(null);
+    }
+  }
+
+  async function handleRejectRequest(request: FriendRequestItem) {
+    setProcessingRequestId(request.id);
+    try {
+      await updateRequestStatus(request, 'rejected');
+      if (Platform.OS === 'web') window.alert('已拒絕好友邀請。');
+      else Alert.alert('完成', '已拒絕好友邀請。');
+      await loadRequests();
+    } catch {
+      if (Platform.OS === 'web') window.alert('拒絕邀請失敗，請稍後再試。');
+      else Alert.alert('錯誤', '拒絕邀請失敗，請稍後再試。');
+    } finally {
+      setProcessingRequestId(null);
     }
   }
 
@@ -137,6 +293,9 @@ export default function ExploreScreen() {
           onChangeText={setSearchQuery}
           autoCapitalize="none"
           autoCorrect={false}
+          onSubmitEditing={handleSearch}
+          returnKeyType="search"
+          blurOnSubmit={false}
         />
         <Pressable style={styles.searchBtn} onPress={handleSearch} disabled={loading}>
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>搜尋</Text>}
@@ -162,6 +321,45 @@ export default function ExploreScreen() {
           searchQuery && !loading ? <Text style={styles.emptyText}>找不到相符的使用者</Text> : null
         }
       />
+
+      <View style={styles.sectionBox}>
+        <Text style={styles.sectionTitle}>待處理邀請</Text>
+        {incomingRequests.length === 0 ? (
+          <Text style={styles.emptySmallText}>目前沒有待處理邀請</Text>
+        ) : (
+          incomingRequests.map((request) => (
+            <View style={styles.requestRow} key={request.id}>
+              <Text style={styles.requestEmail}>{request.from}</Text>
+              <View style={styles.requestActions}>
+                <Pressable
+                  style={[styles.actionBtn, styles.acceptBtn]}
+                  onPress={() => handleAcceptRequest(request)}
+                  disabled={processingRequestId === request.id}>
+                  <Text style={styles.actionText}>同意</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.actionBtn, styles.rejectBtn]}
+                  onPress={() => handleRejectRequest(request)}
+                  disabled={processingRequestId === request.id}>
+                  <Text style={styles.actionText}>拒絕</Text>
+                </Pressable>
+              </View>
+            </View>
+          ))
+        )}
+
+        <Text style={[styles.sectionTitle, { marginTop: 14 }]}>你送出的邀請</Text>
+        {outgoingRequests.length === 0 ? (
+          <Text style={styles.emptySmallText}>目前沒有待回覆邀請</Text>
+        ) : (
+          outgoingRequests.map((request) => (
+            <View style={styles.requestRow} key={request.id}>
+              <Text style={styles.requestEmail}>{request.to}</Text>
+              <Text style={styles.pendingText}>等待回覆</Text>
+            </View>
+          ))
+        )}
+      </View>
     </View>
   );
 }
@@ -179,5 +377,26 @@ const styles = StyleSheet.create({
   userEmail: { fontSize: 13, color: '#64748b', marginTop: 2 },
   addBtn: { backgroundColor: '#0084FF', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 6 },
   addBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  emptyText: { textAlign: 'center', color: '#64748b', marginTop: 30, fontSize: 15 }
+  emptyText: { textAlign: 'center', color: '#64748b', marginTop: 30, fontSize: 15 },
+  sectionBox: { marginTop: 10, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', padding: 14 },
+  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#0f172a', marginBottom: 10 },
+  emptySmallText: { color: '#64748b', fontSize: 13 },
+  requestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  requestEmail: { flex: 1, marginRight: 10, color: '#0f172a', fontSize: 13 },
+  requestActions: { flexDirection: 'row' },
+  actionBtn: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, marginLeft: 8 },
+  acceptBtn: { backgroundColor: '#16a34a' },
+  rejectBtn: { backgroundColor: '#dc2626' },
+  actionText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  pendingText: { color: '#0369a1', fontSize: 12, fontWeight: '700' },
 });

@@ -257,7 +257,7 @@ export default function ExploreScreen() {
         <View style={styles.searchBox}>
           <TextInput
             style={styles.input}
-            placeholder="輸入好友的 ID、姓名 或 Email..."
+            placeholder="輸入好友的名稱跟email..."
             placeholderTextColor="#7f8a94"
             value={searchQuery}
             onChangeText={setSearchQuery}

@@ -92,15 +92,15 @@ export default function SettingScreen() {
       if (res) {
         setAvatar(base64Image);
         if (Platform.OS === 'web') {
-          window.alert('大頭貼已更新並同步至雲端！');
+          window.alert('大頭貼已更新！');
         } else {
-          Alert.alert('成功', '大頭貼已更新並同步至雲端！');
+          Alert.alert('成功', '大頭貼已更新！');
         }
       } else {
         if (Platform.OS === 'web') {
-          window.alert('上傳大頭貼至雲端失敗');
+          window.alert('上傳大頭貼失敗');
         } else {
-          Alert.alert('失敗', '上傳大頭貼至雲端失敗');
+          Alert.alert('失敗', '上傳大頭貼失敗');
         }
       }
     }
@@ -134,9 +134,9 @@ export default function SettingScreen() {
     const res = await supabaseFetch(`app_users?id=eq.${userId}`, 'PATCH', payload);
     if (res) {
       if (Platform.OS === 'web') {
-        window.alert('個人資料及密碼已成功修改，並已確實儲存至雲端資料庫！');
+        window.alert('個人資料及密碼已成功修改');
       } else {
-        Alert.alert('成功', '個人資料及密碼已成功修改，並已確實儲存至雲端資料庫！');
+        Alert.alert('成功', '個人資料及密碼已成功修改');
       }
     } else {
       if (Platform.OS === 'web') {

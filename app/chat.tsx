@@ -85,12 +85,13 @@ export default function ChatScreen() {
     fetchFriendInfo();
   }, [normalizedFriendEmail, isMemoMode]);
 
-  // 輪詢取得最新聊天訊息
+  // 1. 剛進聊天室或切換聊天室時，先預先執行一次標記已讀
   useEffect(() => {
     if (!normalizedMyEmail || !chatIdCandidates.length) return;
     void markChatsAsRead(normalizedMyEmail, chatIdCandidates);
   }, [normalizedMyEmail, canonicalChatId]);
 
+  // 2. 輪詢取得最新聊天訊息，並在「每次撈到新訊息」時同步刷新已讀時間
   useEffect(() => {
     async function fetchChatMessages() {
       if (!chatIdCandidates.length) return;
@@ -98,13 +99,19 @@ export default function ChatScreen() {
       const data = await supabaseFetch(`chat_messages?or=(${orFilter})&order=created_at.asc`);
       if (data && Array.isArray(data)) {
         setMessages(data);
+        
+        // 💡 關鍵修正：當處於聊天室畫面且持續收到/刷新訊息時，也同步將本地時間更新為已讀
+        if (normalizedMyEmail) {
+          void markChatsAsRead(normalizedMyEmail, chatIdCandidates);
+        }
+
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       }
     }
     fetchChatMessages();
     const interval = setInterval(fetchChatMessages, 2000); // 每2秒自動向網路資料庫刷新對話
     return () => clearInterval(interval);
-  }, [chatIdCandidates]);
+  }, [chatIdCandidates, normalizedMyEmail]); // 💡 依賴項加入 normalizedMyEmail
 
   // 發送訊息
   const handleSend = async () => {
@@ -125,6 +132,10 @@ export default function ChatScreen() {
       const updated = await supabaseFetch(`chat_messages?or=(${orFilter})&order=created_at.asc`);
       if (updated) {
         setMessages(updated);
+        // 💡 發送當下也順便標記已讀
+        if (normalizedMyEmail) {
+          void markChatsAsRead(normalizedMyEmail, chatIdCandidates);
+        }
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
       }
     } catch (e) {
@@ -225,7 +236,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     paddingHorizontal: 12, 
     paddingTop: 10, 
-    // 👑 修正：因為沒有底部導覽列了，為了不讓輸入框貼緊 iPhone 或滿版 Android 的底部安全線，iOS 給予 25 留白，其餘給 12
     paddingBottom: Platform.OS === 'ios' ? 25 : 12, 
     backgroundColor: '#ffffff', 
     borderTopWidth: 1,

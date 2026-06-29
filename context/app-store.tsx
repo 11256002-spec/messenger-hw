@@ -1,4 +1,5 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { supabaseFetch } from '../supabaseConfig';
 
@@ -17,16 +18,86 @@ type AppUser = {
 type AppStoreValue = {
 	currentUserEmail: string | null;
 	currentUserName: string | null;
+	isAuthReady: boolean;
 	login: (payload: AuthPayload) => Promise<void>;
 	register: (payload: AuthPayload) => Promise<void>;
 	logout: () => void;
 };
 
 const AppStoreContext = createContext<AppStoreValue | null>(null);
+const AUTH_STORAGE_KEY = 'mchat:auth-user';
+
+type PersistedAuthUser = {
+	email: string;
+	name: string | null;
+};
 
 export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 	const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 	const [currentUserName, setCurrentUserName] = useState<string | null>(null);
+	const [isAuthReady, setIsAuthReady] = useState(false);
+
+	const persistAuthUser = useCallback(async (user: PersistedAuthUser) => {
+		const payload = JSON.stringify(user);
+		await AsyncStorage.setItem(AUTH_STORAGE_KEY, payload);
+		await AsyncStorage.setItem('userEmail', user.email);
+		if (typeof window !== 'undefined') {
+			window.localStorage.setItem(AUTH_STORAGE_KEY, payload);
+			window.localStorage.setItem('userEmail', user.email);
+		}
+	}, []);
+
+	const clearPersistedAuthUser = useCallback(async () => {
+		await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+		await AsyncStorage.removeItem('userEmail');
+		if (typeof window !== 'undefined') {
+			window.localStorage.removeItem(AUTH_STORAGE_KEY);
+			window.localStorage.removeItem('userEmail');
+		}
+	}, []);
+
+	useEffect(() => {
+		let isMounted = true;
+
+		const hydrateAuthUser = async () => {
+			try {
+				let raw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+				if (!raw && typeof window !== 'undefined') {
+					raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+				}
+				let legacyEmail = await AsyncStorage.getItem('userEmail');
+				if (!legacyEmail && typeof window !== 'undefined') {
+					legacyEmail = window.localStorage.getItem('userEmail');
+				}
+
+				if (raw) {
+					const parsed = JSON.parse(raw) as PersistedAuthUser;
+					if (parsed?.email) {
+						if (!isMounted) return;
+						setCurrentUserEmail(parsed.email);
+						setCurrentUserName(parsed.name ?? parsed.email.split('@')[0]);
+					}
+				} else if (legacyEmail) {
+					if (!isMounted) return;
+					setCurrentUserEmail(legacyEmail);
+					setCurrentUserName(legacyEmail.split('@')[0]);
+					await persistAuthUser({ email: legacyEmail, name: legacyEmail.split('@')[0] });
+				}
+			} catch {
+				// ignore malformed storage data and fall back to logged-out state
+			} finally {
+				if (isMounted) {
+					setIsAuthReady(true);
+				}
+			}
+		};
+
+		void hydrateAuthUser();
+
+		return () => {
+			isMounted = false;
+		};
+	}, [persistAuthUser]);
 
 	const register = useCallback(async ({ username, password, name }: AuthPayload) => {
 		const normalizedEmail = username.trim().toLowerCase();
@@ -64,7 +135,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
 		setCurrentUserEmail(normalizedEmail);
 		setCurrentUserName(newUser.name);
-	}, []);
+		await persistAuthUser({ email: normalizedEmail, name: newUser.name });
+	}, [persistAuthUser]);
 
 	const login = useCallback(
 		async ({ username, password }: AuthPayload) => {
@@ -86,24 +158,30 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
 			setCurrentUserEmail(user.email ?? normalizedEmail);
 			setCurrentUserName(user.name ?? normalizedEmail.split('@')[0]);
+			await persistAuthUser({
+				email: user.email ?? normalizedEmail,
+				name: user.name ?? normalizedEmail.split('@')[0],
+			});
 		},
-		[]
+		[persistAuthUser]
 	);
 
 	const logout = useCallback(() => {
 		setCurrentUserEmail(null);
 		setCurrentUserName(null);
-	}, []);
+		void clearPersistedAuthUser();
+	}, [clearPersistedAuthUser]);
 
 	const value = useMemo(
 		() => ({
 			currentUserEmail,
 			currentUserName,
+			isAuthReady,
 			login,
 			register,
 			logout,
 		}),
-		[currentUserEmail, currentUserName, login, logout, register]
+		[currentUserEmail, currentUserName, isAuthReady, login, logout, register]
 	);
 
 	return <AppStoreContext.Provider value={value}>{children}</AppStoreContext.Provider>;

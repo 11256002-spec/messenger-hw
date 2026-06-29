@@ -100,9 +100,21 @@ export default function ChatScreen() {
       if (data && Array.isArray(data)) {
         setMessages(data);
         
-        // 💡 關鍵修正：當處於聊天室畫面且持續收到/刷新訊息時，也同步將本地時間更新為已讀
+        // 💡 修正點：只在確切有收到訊息、且使用者正在此聊天室畫面時，才去標記已讀。
+        // 用最新一條訊息的時間戳記寫入本地，避免登出/重新整理時的時間差錯亂
         if (normalizedMyEmail) {
-          void markChatsAsRead(normalizedMyEmail, chatIdCandidates);
+          if (data.length > 0) {
+            const latestMsgTime = new Date(data[data.length - 1].created_at).getTime();
+            if (!isNaN(latestMsgTime)) {
+              for (const chatId of chatIdCandidates) {
+                const key = getLastReadKey(normalizedMyEmail, chatId);
+                try { await AsyncStorage.setItem(key, String(latestMsgTime)); } catch {}
+                if (typeof window !== 'undefined') { window.localStorage.setItem(key, String(latestMsgTime)); }
+              }
+            }
+          } else {
+            void markChatsAsRead(normalizedMyEmail, chatIdCandidates);
+          }
         }
 
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);

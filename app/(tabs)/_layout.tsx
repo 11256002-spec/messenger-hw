@@ -43,13 +43,6 @@ export default function TabLayout() {
             tabBarIcon: ({ color }) => <FontAwesome size={24} name="gear" color={color} />,
           }}
         />
-        {/* 獨立聊天室頁面 (在 Tab 導覽列中隱藏) */}
-        <Tabs.Screen
-          name="chat"
-          options={{
-            href: null, 
-          }}
-        />
       </Tabs>
     </SafeAreaView>
   );

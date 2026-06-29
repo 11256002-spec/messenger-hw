@@ -80,6 +80,7 @@ export default function ExploreScreen() {
     setOutgoingRequests(latestRequests.filter((req) => req.from === me && req.status === 'pending'));
   }
 
+  // 🚀 關鍵修正：完全拿掉 ID，專注於姓名（Name）與 Email/Gmail 的模糊比對
   async function handleSearch() {
     const query = searchQuery.trim();
     if (!query) {
@@ -90,15 +91,19 @@ export default function ExploreScreen() {
 
     setLoading(true);
     try {
-      const encodedEmailFilter = encodeURIComponent(`email.ilike.%${query}%`);
-      const encodedNameFilter = encodeURIComponent(`name.ilike.%${query}%`);
-      let filter = `${encodedEmailFilter},${encodedNameFilter}`;
+      // 使用 ilike 進行不分大小寫的包含搜尋 (%關鍵字%)
+      // 這樣無論輸入 11256016 (如果是名字)、姓名、或者是 Gmail 任何片段都能撈出來
+      const filters = [
+        `email.ilike.%${query}%`,
+        `name.ilike.%${query}%`
+      ];
 
-      if (!isNaN(Number(query))) filter += `,id.eq.${query}`;
-
-      const users = await supabaseFetch(`app_users?or=(${filter})`);
+      const filterString = encodeURIComponent(filters.join(','));
+      const users = await supabaseFetch(`app_users?or=(${filterString})`);
+      
       if (users && Array.isArray(users)) {
-        const filtered = users.filter((u: any) => u.email.toLowerCase() !== currentUserEmail?.toLowerCase());
+        // 過濾掉自己，避免搜尋到自己加自己
+        const filtered = users.filter((u: any) => u.email?.toLowerCase() !== currentUserEmail?.toLowerCase());
         setSearchResults(filtered);
       } else {
         setSearchResults([]);
@@ -111,9 +116,15 @@ export default function ExploreScreen() {
     }
   }
 
-  async function handleAddFriend(friendEmail: string) {
+  // 🚀 關鍵修正：按加好友時，直接抓取搜尋結果裡該名用戶的精確 email，不再管他當初是用什麼關鍵字搜到的
+  async function handleAddFriend(targetUser: any) {
     const me = (currentUserEmail ?? '').trim().toLowerCase();
-    const friend = friendEmail.trim().toLowerCase();
+    if (!targetUser || !targetUser.email) {
+      if (Platform.OS === 'web') window.alert('使用者資料異常，加好友失敗。');
+      else Alert.alert('失敗', '使用者資料異常，加好友失敗。');
+      return;
+    }
+    const friend = targetUser.email.trim().toLowerCase();
 
     if (!me) {
       if (Platform.OS === 'web') window.alert('請先登入後再加好友。');
@@ -138,17 +149,14 @@ export default function ExploreScreen() {
         return;
       }
 
-      const myUsers = await supabaseFetch(`app_users?email=ilike.${encodeURIComponent(me)}`);
-      const friendUsers = await supabaseFetch(`app_users?email=ilike.${encodeURIComponent(friend)}`);
-
-      if (!myUsers || myUsers.length === 0 || !friendUsers || friendUsers.length === 0) {
-        if (Platform.OS === 'web') window.alert('找不到該使用者資料，加好友失敗。');
-        else Alert.alert('失敗', '找不到該使用者資料，加好友失敗。');
+      const myUsers = await supabaseFetch(`app_users?email=eq.${encodeURIComponent(me)}`);
+      if (!myUsers || myUsers.length === 0) {
+        if (Platform.OS === 'web') window.alert('找不到您的使用者資料，加好友失敗。');
+        else Alert.alert('失敗', '找不到您的使用者資料，加好友失敗。');
         return;
       }
 
       const myData = myUsers[0];
-      const friendData = friendUsers[0];
       const myFriends: string[] = myData.friends || [];
 
       const isAlreadyFriend = myFriends.some(email => email.toLowerCase() === friend.toLowerCase());
@@ -161,19 +169,19 @@ export default function ExploreScreen() {
       const requestPayload: FriendRequestPayload = {
         type: 'friend_request',
         from: myData.email.toLowerCase(),
-        to: friendData.email.toLowerCase(),
+        to: friend,
         status: 'pending',
         createdAt: new Date().toISOString(),
       };
 
       await supabaseFetch('chat_messages', 'POST', {
-        chat_id: `${FRIEND_REQUEST_PREFIX}${myData.email.toLowerCase()}_${friendData.email.toLowerCase()}`,
+        chat_id: `${FRIEND_REQUEST_PREFIX}${myData.email.toLowerCase()}_${friend}`,
         sender_email: myData.email,
         text: JSON.stringify(requestPayload),
       });
 
-      if (Platform.OS === 'web') window.alert(`已送出好友邀請給 ${friendData.name || friendData.email}！`);
-      else Alert.alert('成功', `已送出好友邀請給 ${friendData.name || friendData.email}！`);
+      if (Platform.OS === 'web') window.alert(`已送出好友邀請給 ${targetUser.name || friend}！`);
+      else Alert.alert('成功', `已送出好友邀請給 ${targetUser.name || friend}！`);
 
       setSearchQuery('');
       setSearchResults([]);
@@ -257,7 +265,7 @@ export default function ExploreScreen() {
         <View style={styles.searchBox}>
           <TextInput
             style={styles.input}
-            placeholder="輸入好友的名稱跟email..."
+            placeholder="輸入好友的姓名、Gmail或Email..."
             placeholderTextColor="#7f8a94"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -283,7 +291,7 @@ export default function ExploreScreen() {
               <Text style={styles.userName}>{item.name || '未命名使用者'}</Text>
               <Text style={styles.userEmail}>{item.email}</Text>
             </View>
-            <Pressable style={styles.addBtn} onPress={() => handleAddFriend(item.email)}>
+            <Pressable style={styles.addBtn} onPress={() => handleAddFriend(item)}>
               <Text style={styles.addBtnText}>加好友</Text>
             </Pressable>
           </View>

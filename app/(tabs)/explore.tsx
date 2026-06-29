@@ -1,7 +1,7 @@
 import { useAppStore } from '@/context/app-store';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { supabaseFetch } from '../../supabaseConfig';
 
 const FRIEND_REQUEST_PREFIX = 'friend_request_';
@@ -21,12 +21,19 @@ type FriendRequestItem = FriendRequestPayload & {
   id: string;
 };
 
+type FriendUser = {
+  id: string;
+  name: string;
+  email: string;
+};
+
 export default function ExploreScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<FriendRequestItem[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<FriendRequestItem[]>([]);
+  const [myFriendsList, setMyFriendsList] = useState<FriendUser[]>([]); // 👑 新增：存放已經是好友的用戶詳細資料
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
   const { currentUserEmail } = useAppStore();
 
@@ -35,6 +42,7 @@ export default function ExploreScreen() {
       setSearchQuery('');
       setSearchResults([]);
       void loadRequests();
+      void loadFriends(); // 👑 進入頁面時載入好友列表
     }, [currentUserEmail])
   );
 
@@ -80,7 +88,37 @@ export default function ExploreScreen() {
     setOutgoingRequests(latestRequests.filter((req) => req.from === me && req.status === 'pending'));
   }
 
-  // 🚀 關鍵修正：完全拿掉 ID，專注於姓名（Name）與 Email/Gmail 的模糊比對
+  // 👑 新增：撈取並顯示目前已經是好友的區塊邏輯
+  async function loadFriends() {
+    const me = (currentUserEmail ?? '').trim().toLowerCase();
+    if (!me) {
+      setMyFriendsList([]);
+      return;
+    }
+
+    try {
+      const myUsers = await supabaseFetch(`app_users?email=eq.${encodeURIComponent(me)}`);
+      if (myUsers && myUsers.length > 0) {
+        const myFriendsEmails: string[] = myUsers[0].friends || [];
+        if (myFriendsEmails.length === 0) {
+          setMyFriendsList([]);
+          return;
+        }
+
+        // 到 app_users 查詢這些好友的詳細資料（如：姓名）
+        const filterString = encodeURIComponent(myFriendsEmails.map(email => `email.eq.${email}`).join(','));
+        const friendsData = await supabaseFetch(`app_users?or=(${filterString})`);
+        
+        if (friendsData && Array.isArray(friendsData)) {
+          setMyFriendsList(friendsData);
+        }
+      }
+    } catch (err) {
+      console.error('載入好友列表失敗:', err);
+    }
+  }
+
+  // 🚀 搜尋邏輯：專注於姓名（Name）與 Email/Gmail 的模糊比對，不用 ID 
   async function handleSearch() {
     const query = searchQuery.trim();
     if (!query) {
@@ -91,8 +129,6 @@ export default function ExploreScreen() {
 
     setLoading(true);
     try {
-      // 使用 ilike 進行不分大小寫的包含搜尋 (%關鍵字%)
-      // 這樣無論輸入 11256016 (如果是名字)、姓名、或者是 Gmail 任何片段都能撈出來
       const filters = [
         `email.ilike.%${query}%`,
         `name.ilike.%${query}%`
@@ -102,7 +138,6 @@ export default function ExploreScreen() {
       const users = await supabaseFetch(`app_users?or=(${filterString})`);
       
       if (users && Array.isArray(users)) {
-        // 過濾掉自己，避免搜尋到自己加自己
         const filtered = users.filter((u: any) => u.email?.toLowerCase() !== currentUserEmail?.toLowerCase());
         setSearchResults(filtered);
       } else {
@@ -116,7 +151,7 @@ export default function ExploreScreen() {
     }
   }
 
-  // 🚀 關鍵修正：按加好友時，直接抓取搜尋結果裡該名用戶的精確 email，不再管他當初是用什麼關鍵字搜到的
+  // 🚀 加好友功能：直接抓取點選用戶的精確 email 進行綁定
   async function handleAddFriend(targetUser: any) {
     const me = (currentUserEmail ?? '').trim().toLowerCase();
     if (!targetUser || !targetUser.email) {
@@ -231,6 +266,7 @@ export default function ExploreScreen() {
       if (Platform.OS === 'web') window.alert('已同意好友邀請。');
       else Alert.alert('成功', '已同意好友邀請。');
       await loadRequests();
+      await loadFriends(); // 同意後刷新好友清單
     } catch {
       if (Platform.OS === 'web') window.alert('同意邀請失敗，請稍後再試。');
       else Alert.alert('錯誤', '同意邀請失敗，請稍後再試。');
@@ -255,7 +291,7 @@ export default function ExploreScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <View style={styles.headerCard}>
         <Text style={styles.title}>探索與增添好友</Text>
         <Text style={styles.subtitle}>目前登入：{currentUserEmail ?? '尚未登入'}</Text>
@@ -265,7 +301,7 @@ export default function ExploreScreen() {
         <View style={styles.searchBox}>
           <TextInput
             style={styles.input}
-            placeholder="輸入好友的姓名、Gmail或Email..."
+            placeholder="輸入好友的姓名或Email..."
             placeholderTextColor="#7f8a94"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -281,24 +317,27 @@ export default function ExploreScreen() {
         </View>
       </View>
 
-      <FlatList
-        data={searchResults}
-        contentContainerStyle={styles.resultListContent}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.userCard}>
-            <View style={{ flex: 1, marginRight: 10 }}>
-              <Text style={styles.userName}>{item.name || '未命名使用者'}</Text>
-              <Text style={styles.userEmail}>{item.email}</Text>
+      {/* 搜尋結果列表區塊 */}
+      {searchResults.length > 0 && (
+        <View style={{ marginBottom: 10 }}>
+          {searchResults.map((item) => (
+            <View style={styles.userCard} key={item.id.toString()}>
+              <View style={{ flex: 1, marginRight: 10 }}>
+                <Text style={styles.userName}>{item.name || '未命名使用者'}</Text>
+                <Text style={styles.userEmail}>{item.email}</Text>
+              </View>
+              <Pressable style={styles.addBtn} onPress={() => handleAddFriend(item)}>
+                <Text style={styles.addBtnText}>加好友</Text>
+              </Pressable>
             </View>
-            <Pressable style={styles.addBtn} onPress={() => handleAddFriend(item)}>
-              <Text style={styles.addBtnText}>加好友</Text>
-            </Pressable>
-          </View>
-        )}
-        ListEmptyComponent={searchQuery && !loading ? <Text style={styles.emptyText}>找不到相符的使用者</Text> : null}
-      />
+          ))}
+        </View>
+      )}
+      {searchQuery && !loading && searchResults.length === 0 && (
+        <Text style={styles.emptyText}>找不到相符的使用者</Text>
+      )}
 
+      {/* 待處理/已送出邀請區塊 */}
       <View style={styles.sectionBox}>
         <Text style={styles.sectionTitle}>待處理邀請</Text>
         {incomingRequests.length === 0 ? (
@@ -331,7 +370,30 @@ export default function ExploreScreen() {
           ))
         )}
       </View>
-    </View>
+
+      {/* 👑 新增功能：我的好友列表顯示區塊 */}
+      <View style={styles.sectionBox}>
+        <Text style={styles.sectionTitle}>我的好友列表</Text>
+        {myFriendsList.length === 0 ? (
+          <Text style={styles.emptySmallText}>目前還沒有任何好友</Text>
+        ) : (
+          myFriendsList.map((friend) => (
+            <View style={styles.friendRowItem} key={friend.id}>
+              <View style={styles.friendAvatarMock}>
+                <Text style={styles.friendAvatarText}>{friend.name ? friend.name.substring(0, 1) : '友'}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.friendNameText}>{friend.name || '未命名好友'}</Text>
+                <Text style={styles.friendEmailText}>{friend.email}</Text>
+              </View>
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusBadgeText}>已是好友</Text>
+              </View>
+            </View>
+          ))
+        )}
+      </View>
+    </ScrollView>
   );
 }
 
@@ -376,7 +438,6 @@ const styles = StyleSheet.create({
   },
   searchBtn: { backgroundColor: '#1d2a36', height: 46, width: 80, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   btnText: { color: '#f7f7f4', fontSize: 15, fontWeight: 'bold' },
-  resultListContent: { paddingBottom: 8 },
   userCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -392,8 +453,8 @@ const styles = StyleSheet.create({
   userEmail: { fontSize: 13, color: '#7f8a94', marginTop: 2 },
   addBtn: { backgroundColor: '#7b2530', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8 },
   addBtnText: { color: '#f7f7f4', fontSize: 13, fontWeight: '600' },
-  emptyText: { textAlign: 'center', color: '#7f8a94', marginTop: 30, fontSize: 15 },
-  sectionBox: { marginTop: 8, marginBottom: 16, backgroundColor: '#ffffff', borderRadius: 14, borderWidth: 1, borderColor: '#d3c7bb', padding: 14 },
+  emptyText: { textAlign: 'center', color: '#7f8a94', marginTop: 20, marginBottom: 20, fontSize: 15 },
+  sectionBox: { marginTop: 8, marginBottom: 12, backgroundColor: '#ffffff', borderRadius: 14, borderWidth: 1, borderColor: '#d3c7bb', padding: 14 },
   sectionTitle: { fontSize: 15, fontWeight: '800', color: '#1d2a36', marginBottom: 10 },
   emptySmallText: { color: '#7f8a94', fontSize: 13 },
   requestRow: {
@@ -414,4 +475,48 @@ const styles = StyleSheet.create({
   rejectBtn: { backgroundColor: '#7b2530' },
   actionText: { color: '#f7f7f4', fontSize: 12, fontWeight: '700' },
   pendingText: { color: '#7f8a94', fontSize: 12, fontWeight: '700' },
+  
+  // 👑 我的好友列表樣式組
+  friendRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1eee9',
+  },
+  friendAvatarMock: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#e3dad0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  friendAvatarText: {
+    color: '#1d2a36',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  friendNameText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#1d2a36',
+  },
+  friendEmailText: {
+    fontSize: 12,
+    color: '#7f8a94',
+    marginTop: 2,
+  },
+  statusBadge: {
+    backgroundColor: '#f1eee9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    color: '#7f8a94',
+    fontWeight: '600',
+  },
 });

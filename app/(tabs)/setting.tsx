@@ -154,22 +154,33 @@ export default function SettingScreen() {
   // 登出流程
   const handleLogout = () => {
     const doLogoutProcess = async () => {
-      await AsyncStorage.removeItem('userEmail');
-      if (typeof window !== 'undefined') {
-        window.localStorage.removeItem('userEmail');
+      try {
+        await AsyncStorage.removeItem('userEmail');
+      } catch (e) {
+        console.log('AsyncStorage 移除失敗', e);
       }
+      
+      // 👑 關鍵修正：加入環境防呆判定！只有在網頁環境下才執行 window.localStorage，徹底解決手機端 removeItem 崩潰問題
+      if (typeof window !== 'undefined' && window && window.localStorage) {
+        try {
+          window.localStorage.removeItem('userEmail');
+        } catch (e) {
+          // 防呆不處理
+        }
+      }
+      
       logout(); 
       router.replace('/');
     };
 
     if (Platform.OS === 'web') {
-      if (window.confirm('確定要登出此帳號嗎？')) {
-        doLogoutProcess();
+      if (typeof window !== 'undefined' && window.confirm && window.confirm('確定要登出此帳號嗎？')) {
+        void doLogoutProcess();
       }
     } else {
       Alert.alert('登出', '確定要登出此帳號嗎？', [
         { text: '取消', style: 'cancel' },
-        { text: '確定', style: 'destructive', onPress: doLogoutProcess },
+        { text: '確定', style: 'destructive', onPress: () => { void doLogoutProcess(); } },
       ]);
     }
   };

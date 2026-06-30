@@ -90,8 +90,13 @@ export default function MessengerHomeScreen() {
     if (!myEmail) return;
     
     try {
-      const userData = await supabaseFetch(`app_users?email=eq.${myEmail}`, 'GET');
-      if (!userData || userData.length === 0) return;
+      const userData = await supabaseFetch(`app_users?email=eq.${encodeURIComponent(myEmail)}`, 'GET');
+      if (!userData || userData.length === 0) {
+          // 👑 關鍵修正：將路徑改回根目錄 '/' 確保 expo-router 能夠正確識別並安全跳轉，不再拋出導航找不到 index 的錯誤
+          const { router: globalRouter } = require('expo-router');
+          globalRouter.replace('/');
+          return;
+        }
 
       const myInfo = userData[0];
       const friendsList = myInfo.friends || [];
@@ -187,14 +192,22 @@ export default function MessengerHomeScreen() {
     }
   };
 
+  // 👑 定時器安全防護邏輯
   useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
     if (currentUserEmail && myEmail) {
       fetchChatList();
-      const interval = setInterval(fetchChatList, 4000);
-      return () => clearInterval(interval);
+      interval = setInterval(fetchChatList, 4000);
     } else {
       setChats([]);
     }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [currentUserEmail, myEmail]);
 
   const handleLogin = async () => {

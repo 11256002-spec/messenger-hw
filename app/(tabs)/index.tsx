@@ -9,22 +9,28 @@ import { supabaseFetch } from '../../supabaseConfig';
 
 const getLastReadKey = (ownerEmail: string, chatId: string) => `mchat:lastRead:${ownerEmail}:${chatId}`;
 
+
 async function readLastReadAt(ownerEmail: string, chatIds: string[]): Promise<number> {
   let latest = 0;
 
+  const getStorageItem = async (key: string) => {
+    try {
+      if (AsyncStorage?.getItem) {
+        return (await AsyncStorage.getItem(key)) ?? '';
+      }
+      if (typeof window !== 'undefined') {
+        return window.localStorage.getItem(key) ?? '';
+      }
+      return '';
+    } catch {
+      return '';
+    }
+  };
+
   for (const chatId of chatIds) {
     const key = getLastReadKey(ownerEmail, chatId);
-    let stored = '';
 
-    try {
-      stored = (await AsyncStorage.getItem(key)) ?? '';
-    } catch {
-      stored = '';
-    }
-
-    if (!stored && typeof window !== 'undefined') {
-      stored = window.localStorage.getItem(key) ?? '';
-    }
+    const stored = await getStorageItem(key);
 
     const ts = Number(stored);
     if (!Number.isNaN(ts) && ts > latest) {
